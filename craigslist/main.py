@@ -176,11 +176,11 @@ def get_url(url_template, setting_dict=None):
 
 def make_html_body(post):
     html_body = (
-        "<a href=3D\"" + post[patternName.POST_LINK] + "\">" + post[patternName.TITLE] + "</a>"
+        "<a href=\"" + post[patternName.POST_LINK] + "\">" + post[patternName.TITLE] + "</a>"
         + "<br>" + post[patternName.LOCATION] + " in " + post[patternName.DISTANCE] + "mi at " + post[patternName.TIME] + "<br>"
     )
     if post[patternName.IMG_LINK]:
-        html_body += "<a href=\"" + post[patternName.POST_LINK] + "\">" + "<img src=3D\"" + post[patternName.IMG_LINK] + "\">" + "</a>" + "<br>"
+        html_body += "<a href=\"" + post[patternName.POST_LINK] + "\">" + "<img src=\"" + post[patternName.IMG_LINK] + "\">" + "</a>" + "<br>"
     return html_body
 
 

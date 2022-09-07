@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 EXISTING_POST_FILENAME = 'existing_posts.txt'
 SLEEPING_TIME = 60
 DEBUG_FILENAME = 'debug.html'
+DEFAULT_EMAIL = 'drhsheng@gmail.com'
+NIGHT_SLEEPING_TIME = 3600
 POST_PATTERN = (
     "class=\"cl-search-result cl-search-view-mode-gallery\""
     + ".*?"
@@ -162,9 +164,11 @@ def scrap_craigslist(url, post_handle, existing_posts,
 def nightly_idle_and_flush(existing_post_filename, post_handle, existing_posts):
     pacific_time = get_pacific_time()
     logger.info(f'Is night now: {pacific_time}. Resetting existing posts.')
-    existing_posts.clear()
-    post_handle.close()
-    post_handle = open(existing_post_filename, 'w', encoding="utf-8")
+    if existing_posts:
+        existing_posts.clear()
+        post_handle.close()
+        post_handle = open(existing_post_filename, 'w', encoding="utf-8")
+    return post_handle
 
 
 def get_url(url_template, setting_dict=None):
@@ -184,19 +188,24 @@ def make_html_body(post):
     return html_body
 
 
+def _send_email(html_body, title, email_address, is_bug=True):
+    email_cmd = f'echo "{html_body}" | mail -s "{title}\nContent-Type: text/html" {email_address}'
+    if is_bug:
+        logger.info(f'Sending bug report to {email_address}.')
+    else:
+        logger.info(f'Sending email to {email_address}.')
+    error_code = os.system(email_cmd)
+    if error_code:
+        logger.info(email_cmd)
+
+
 def send_email(posts, emails, **kwargs):
     if not posts:
         return
     title = 'Multiple New Posts Found' if len(posts) > 1 else 'New Post Found'
     html_body = '\\n'.join(make_html_body(post) for post in posts)
-    email_address = '{email_address}'
-    email_cmd_template = f'echo "{html_body}" | mail -s "{title}\nContent-Type: text/html" {email_address}'
     for email_address in emails:
-        email_cmd = email_cmd_template.format(email_address=email_address)
-        logger.info(f'Sending email to {email_address}.')
-        error_code = os.system(email_cmd)
-        if error_code:
-            logger.info(email_cmd)
+        _send_email(html_body, title, email_address)
 
 
 def send_notification(posts, toast=None, duration=20, **kwargs):
@@ -276,7 +285,8 @@ def _main(argv=None):
 
     """Return a friendly HTTP greeting."""
     existing_post_filename = args.existing_post_file
-    sleep_time = args.sleep_time
+    default_sleep_time = args.sleep_time
+    sleep_time = default_sleep_time
     nightly_flush_done = False
 
     if os.path.exists(existing_post_filename):
@@ -296,17 +306,17 @@ def _main(argv=None):
 
     while True:
         if is_night(*args.night_time):
-            if not nightly_flush_done:
-                nightly_idle_and_flush(
-                    existing_post_filename, post_handle, existing_posts)
-                nightly_flush_done = True
+            post_handle = nightly_idle_and_flush(
+                existing_post_filename, post_handle, existing_posts)
+            # once we detect it's night time, we sleep longer
+            sleep_time = NIGHT_SLEEPING_TIME
         else:
             if setting_dict is not None:
                 setting_dict = shuffle_dict(setting_dict)
             url = get_url(url_template, setting_dict=setting_dict)
             logger.info(f'Searching URL: {url}')
-            # a new day, reset nightly_flush_done
-            nightly_flush_done = False
+            # a new day, reset sleep_time to default
+            sleep_time = default_sleep_time
             new_posts = scrap_craigslist(url, post_handle, existing_posts, browser=browser)
             notify(posts=new_posts, **notify_kwargs)
         logger.info(f'Processing done. Sleep for {sleep_time} seconds.')
@@ -316,7 +326,11 @@ def _main(argv=None):
         browser.close()
 
 def main(argv=None):
-    _main(argv=None)
+    try:
+        _main(argv=None)
+    except Exception as e:
+        exception_txt = str(e)
+        _send_email(exception_txt, 'BUG reported', , is_bug=True)
 
 
 if __name__ == '__main__':

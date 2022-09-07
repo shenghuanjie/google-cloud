@@ -188,7 +188,7 @@ def send_email(posts, emails, **kwargs):
     if not posts:
         return
     title = 'Multiple New Posts Found' if len(posts) > 1 else 'New Post Found'
-    html_body = '\n'.join(make_html_body(post) for post in posts)
+    html_body = '\\n'.join(make_html_body(post) for post in posts)
     email_address = '{email_address}'
     email_cmd_template = f'echo "{html_body}" | mail -s "{title}\nContent-Type: text/html" {email_address}'
     for email_address in emails:

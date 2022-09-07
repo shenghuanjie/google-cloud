@@ -254,7 +254,7 @@ def get_args(argv=None):
         help='night start/end time'
     )
     parser.add_argument(
-        '--email-addresses', default=('drhsheng@gmail.com', ), nargs='+',
+        '--email-addresses', default=(DEFAULT_EMAIL, ), nargs='+',
         help='Email addresses to send notification to.'
     )
     args = parser.parse_args(args=argv)
@@ -330,7 +330,7 @@ def main(argv=None):
         _main(argv=None)
     except Exception as e:
         exception_txt = str(e)
-        _send_email(exception_txt, 'BUG reported', , is_bug=True)
+        _send_email(exception_txt, 'BUG reported', DEFAULT_EMAIL, is_bug=True)
 
 
 if __name__ == '__main__':

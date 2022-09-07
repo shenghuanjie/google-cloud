@@ -1,0 +1,6 @@
+pytz=2022.1
+selenium=3.141.0
+firefox=104.0
+geckodriver=0.30.0
+pyyaml=6.0
+win10toast=0.9; sys_platform == 'win32'

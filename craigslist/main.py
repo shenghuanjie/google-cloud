@@ -146,7 +146,7 @@ def scrap_craigslist(url, post_handle, existing_posts,
                 writing_post_ids.append(post_id)
         if new_results:
             existing_posts.update(writing_post_ids)
-            logger.info('having new results.')
+            logger.info(f'having {len(new_results)} new results.')
             print('\n'.join(writing_post_ids), file=post_handle)
         else:
             logger.info('nothing new')
@@ -190,9 +190,10 @@ def send_email(posts, emails, **kwargs):
     title = 'Multiple New Posts Found' if len(posts) > 1 else 'New Post Found'
     html_body = '\n'.join(make_html_body(post) for post in posts)
     email_address = '{email_address}'
-    email_cmd_template = f'echo "{html_body}" | mail -s "$(echo -e "{title}\nContent-Type: text/html")" {email_address}'
+    email_cmd_template = f'echo "{html_body}" | mail -s "{title}\nContent-Type: text/html" {email_address}'
     for email_address in emails:
         email_cmd = email_cmd_template.format(email_address=email_address)
+        logger.info(f'Sending email to {email_address}.')
         os.system(email_cmd)
 
 

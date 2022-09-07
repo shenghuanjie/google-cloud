@@ -194,7 +194,9 @@ def send_email(posts, emails, **kwargs):
     for email_address in emails:
         email_cmd = email_cmd_template.format(email_address=email_address)
         logger.info(f'Sending email to {email_address}.')
-        os.system(email_cmd)
+        error_code = os.system(email_cmd)
+        if error_code:
+            logger.info(email_cmd)
 
 
 def send_notification(posts, toast=None, duration=20, **kwargs):

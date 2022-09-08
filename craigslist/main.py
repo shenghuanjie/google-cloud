@@ -30,6 +30,7 @@ DEBUG_FILENAME = 'debug.html'
 DEFAULT_EMAIL = 'drhsheng@gmail.com'
 NIGHT_SLEEPING_TIME = 3600
 MAX_NUM_EMAIL_PER_DAY = 200
+EMAIL_COUNTER_KEY = 'EMAIL_COUNTER'
 POST_PATTERN = (
     "class=\"cl-search-result cl-search-view-mode-gallery\""
     + ".*?"
@@ -215,11 +216,15 @@ def _send_email(html_body, title, emails, is_bug=False):
     error_code = os.system(email_cmd)
     if error_code:
         logger.info(email_cmd)
+    else:
+        # update email counter
+        os.environ[EMAIL_COUNTER_KEY] = str(int(os.environ[EMAIL_COUNTER_KEY]) + 1)
 
 
-def send_email(posts, emails, email_counter=0, email_quota=0, **kwargs):
+def send_email(posts, emails, email_quota=0, **kwargs):
     if not posts:
         return
+    email_counter = int(os.environ[EMAIL_COUNTER_KEY])
     if email_quota and email_counter >= email_quota:
         logger.info('max quota reached.  Skipping sending email.')
         return
@@ -344,14 +349,15 @@ def _main(argv=None):
     except WebDriverException:
         browser = None
 
-    email_counter = 0
+    if EMAIL_COUNTER_KEY not in os.environ:
+        os.environ[EMAIL_COUNTER_KEY] = str(0)
     while True:
         if is_night(*args.night_time):
             post_handle = nightly_idle_and_flush(
                 existing_post_filename, post_handle, existing_posts)
             # once we detect it's night time, we sleep longer
             sleep_time = NIGHT_SLEEPING_TIME
-            email_counter = 0
+            os.environ[EMAIL_COUNTER_KEY] = str(0)
         else:
             if os.path.exists(args.setting_file):
                 with open(args.setting_file) as fp:
@@ -370,10 +376,7 @@ def _main(argv=None):
                 browser=browser, debug=args.debug)
             # no notification the first search per day
             if sleep_time == default_sleep_time:
-                if 'emails' in notify_kwargs:
-                    notify_kwargs['email_counter'] = email_counter
                 notify(posts=new_posts, **notify_kwargs)
-                email_counter += 1
             sleep_time = default_sleep_time
         logger.info(f'Processing done. Sleep for {sleep_time} seconds.')
         time.sleep(sleep_time)

@@ -27,6 +27,7 @@ SLEEPING_TIME = 60
 DEBUG_FILENAME = 'debug.html'
 DEFAULT_EMAIL = 'drhsheng@gmail.com'
 NIGHT_SLEEPING_TIME = 3600
+MAX_NUM_EMAIL_PER_DAY = 200
 POST_PATTERN = (
     "class=\"cl-search-result cl-search-view-mode-gallery\""
     + ".*?"
@@ -188,8 +189,10 @@ def make_html_body(post):
     return html_body
 
 
-def _send_email(html_body, title, email_address, is_bug=True):
-    email_cmd = f'echo "{html_body}" | mail -s "{title}\nContent-Type: text/html" {email_address}'
+def _send_email(html_body, title, emails, is_bug=True):
+    if not isinstance(emails, str):
+        emails = ' '.join(emails)
+    email_cmd = f'echo "{html_body}" | mail -s "{title}\nContent-Type: text/html" -aFrom:{DEFAULT_EMAIL} {emails}'
     if is_bug:
         logger.info(f'Sending bug report to {email_address}.')
     else:
@@ -199,19 +202,27 @@ def _send_email(html_body, title, email_address, is_bug=True):
         logger.info(email_cmd)
 
 
-def send_email(posts, emails, **kwargs):
+def send_email(posts, emails, email_counter=0, email_quota=0, **kwargs):
     if not posts:
         return
+    if email_quota and email_counter >= email_quota:
+        logger.info('max quota reached.  Skipping sending email.')
+        return
+    if email_quota and email_counter >= email_quota - 2:
+        # we need to leave 2 emails here, one for this notification and
+        # one for the posts update
+        _send_email(f'{email_counter} emails has been sent today and the limit is {MAX_NUM_EMAIL_PER_DAY}.',
+                    'Email Quota Reached in Free Stuff Found on Craigslist',
+                    DEFAULT_EMAIL, is_bug=True)
     title = 'Multiple New Posts Found' if len(posts) > 1 else 'New Post Found'
     html_body = '\\n'.join(make_html_body(post) for post in posts)
-    for email_address in emails:
-        _send_email(html_body, title, email_address)
+    _send_email(html_body, title, emails)
 
 
 def send_notification(posts, toast=None, duration=20, **kwargs):
     if not posts:
         return
-    title = 'Multiple New Posts Found' if len(posts) > 1 else 'New Post Found'
+    title = 'Multiple Free Stuff Found on Craigslist' if len(posts) > 1 else 'New Free Stuff Found on Craigslist'
     body = posts[0][patternName.TITLE] + ': (' + posts[0][patternName.LOCATION] + ' in ' + posts[0][patternName.DISTANCE] + 'mi at ' + posts[0][patternName.TIME] + ')'
     toast.show_toast(
         title, body,
@@ -257,6 +268,11 @@ def get_args(argv=None):
         '--email-addresses', default=(DEFAULT_EMAIL, ), nargs='+',
         help='Email addresses to send notification to.'
     )
+    parser.add_argument(
+        '--email-quota', default=MAX_NUM_EMAIL_PER_DAY, type=int,
+        help='Naximum number of emails allowed to send per day.'
+             '0 means unlimited.'
+    )
     args = parser.parse_args(args=argv)
     setup_logging(args.log_file)
     return args
@@ -278,6 +294,7 @@ def _main(argv=None):
     if platform == "linux" or platform == "linux2":
         # linux
         notify_kwargs['emails'] = args.email_addresses
+        notify_kwargs['email_quota'] = args.email_quota
     elif platform == "darwin":
         raise OSError(f'OS {platform} not supported.')
     elif platform == "win32":
@@ -304,21 +321,28 @@ def _main(argv=None):
     except WebDriverException:
         browser = None
 
+    email_counter = 0
     while True:
         if is_night(*args.night_time):
             post_handle = nightly_idle_and_flush(
                 existing_post_filename, post_handle, existing_posts)
             # once we detect it's night time, we sleep longer
             sleep_time = NIGHT_SLEEPING_TIME
+            email_counter = 0
         else:
             if setting_dict is not None:
                 setting_dict = shuffle_dict(setting_dict)
             url = get_url(url_template, setting_dict=setting_dict)
             logger.info(f'Searching URL: {url}')
             # a new day, reset sleep_time to default
-            sleep_time = default_sleep_time
             new_posts = scrap_craigslist(url, post_handle, existing_posts, browser=browser)
-            notify(posts=new_posts, **notify_kwargs)
+            # no notification the first search per day
+            if sleep_time == default_sleep_time:
+                if 'emails' in notify_kwargs:
+                    notify_kwargs['email_counter'] = email_counter
+                notify(posts=new_posts, **notify_kwargs)
+                email_counter += 1
+            sleep_time = default_sleep_time
         logger.info(f'Processing done. Sleep for {sleep_time} seconds.')
         time.sleep(sleep_time)
     post_handle.close()
@@ -330,7 +354,8 @@ def main(argv=None):
         _main(argv=None)
     except Exception as e:
         exception_txt = str(e)
-        _send_email(exception_txt, 'BUG reported', DEFAULT_EMAIL, is_bug=True)
+        _send_email(exception_txt, 'BUG Reported from Free Stuff Found on Craigslist',
+                    DEFAULT_EMAIL, is_bug=True)
 
 
 if __name__ == '__main__':

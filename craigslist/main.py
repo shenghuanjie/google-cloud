@@ -59,7 +59,7 @@ def setup_logging(log_file):
     print_fh.setLevel(logging.DEBUG)
     print_fh.setFormatter(formatter)
 
-    log_fh = logging.FileHandler(log_file, encoding="utf-8")
+    log_fh = logging.TimedRotatingFileHandler(log_file, when='midnight', backupCount=1, encoding="utf-8")
     log_fh.setLevel(logging.DEBUG)
     log_fh.setFormatter(formatter)
 
@@ -194,9 +194,9 @@ def _send_email(html_body, title, emails, is_bug=True):
         emails = ' '.join(emails)
     email_cmd = f'echo "{html_body}" | mail -s "{title}\nContent-Type: text/html" -aFrom:{DEFAULT_EMAIL} {emails}'
     if is_bug:
-        logger.info(f'Sending bug report to {email_address}.')
+        logger.info(f'Sending bug report to {emails}.')
     else:
-        logger.info(f'Sending email to {email_address}.')
+        logger.info(f'Sending email to {emails}.')
     error_code = os.system(email_cmd)
     if error_code:
         logger.info(email_cmd)

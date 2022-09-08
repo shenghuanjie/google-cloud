@@ -190,7 +190,7 @@ def make_html_body(post):
     return html_body
 
 
-def _send_email(html_body, title, emails, is_bug=True):
+def _send_email(html_body, title, emails, is_bug=False):
     if not isinstance(emails, str):
         emails = ' '.join(emails)
     email_cmd = f'echo "{html_body}" | mail -s "{title}\nContent-Type: text/html" -aFrom:{DEFAULT_EMAIL} {emails}'

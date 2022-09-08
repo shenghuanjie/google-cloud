@@ -53,7 +53,7 @@ class patternName(int, Enum):
     DISTANCE = 5
 
 
-def setup_logging(log_file):
+def setup_logging(log_file, debug=False):
     fmt = '%(asctime)s %(levelname)-9s: [%(name)s:%(lineno)s]: %(message)s'
     datefmt = '%Y-%m-%d %H:M:%S'
     formatter = logging.Formatter(fmt, datefmt)
@@ -62,7 +62,10 @@ def setup_logging(log_file):
     print_fh.setFormatter(formatter)
 
     log_fh = TimedRotatingFileHandler(log_file, when='midnight', backupCount=1, encoding="utf-8")
-    log_fh.setLevel(logging.DEBUG)
+    if debug:
+        log_fh.setLevel(logging.DEBUG)
+    else:
+        log_fh.setLevel(logging.INFO)
     log_fh.setFormatter(formatter)
 
     root_logger = logging.getLogger()
@@ -131,10 +134,13 @@ def shuffle_list(l):
 
 
 def scrap_craigslist(url, post_handle, existing_posts,
-                     browser=None, debug_filename=DEBUG_FILENAME):
+                     browser=None, debug_filename=DEBUG_FILENAME,
+                     debug=False):
     page_source = '[NOTHING YET]'
     try:
         page_source = web_loader(url, browser=browser)
+        if debug:
+            logger.info(page_source)
     except Exception as exception:
         logger.info(str(exception))
         with open(debug_filename, 'w', encoding='utf-8') as fp:
@@ -268,6 +274,10 @@ def get_args(argv=None):
         help='debug file'
     )
     parser.add_argument(
+        '--debug', action='store_true',
+        help='debug mode'
+    )
+    parser.add_argument(
         '--night-time', default=(0, 7), type=int, nargs=2,
         help='night start/end time'
     )
@@ -281,7 +291,7 @@ def get_args(argv=None):
              '0 means unlimited.'
     )
     args = parser.parse_args(args=argv)
-    setup_logging(args.log_file)
+    setup_logging(args.log_file, args.debug)
     return args
 
 
@@ -349,9 +359,12 @@ def _main(argv=None):
             if setting_dict is not None:
                 setting_dict = shuffle_dict(setting_dict)
             url = get_url(url_template, setting_dict=setting_dict)
-            logger.info(f'Searching URL: {url}')
+            if args.debug:
+                logger.info(f'Searching URL: {url}')
             # a new day, reset sleep_time to default
-            new_posts = scrap_craigslist(url, post_handle, existing_posts, browser=browser)
+            new_posts = scrap_craigslist(
+                url, post_handle, existing_posts,
+                browser=browser, debug=args.debug)
             # no notification the first search per day
             if sleep_time == default_sleep_time:
                 if 'emails' in notify_kwargs:

@@ -125,6 +125,11 @@ def shuffle_dict(d):
     return d
 
 
+def shuffle_list(l):
+    random.shuffle(l)
+    return l
+
+
 def scrap_craigslist(url, post_handle, existing_posts,
                      browser=None, debug_filename=DEBUG_FILENAME):
     page_source = '[NOTHING YET]'
@@ -289,6 +294,8 @@ def _main(argv=None):
     if os.path.exists(args.setting_file):
         with open(args.setting_file) as fp:
             setting_dict = yaml.safe_load(fp)
+        if 'query' in setting_dict:
+            setting_dict['query'] = '|'.join(shuffle_list(setting_dict['query'].split('|')))
         setting_dict = {k: quote(f'{v}') for k, v in setting_dict.items()}
     else:
         setting_dict = None
@@ -336,6 +343,8 @@ def _main(argv=None):
             if os.path.exists(args.setting_file):
                 with open(args.setting_file) as fp:
                     setting_dict = yaml.safe_load(fp)
+                if 'query' in setting_dict:
+                    setting_dict['query'] = '|'.join(shuffle_list(setting_dict['query'].split('|')))
                 setting_dict = {k: quote(f'{v}') for k, v in setting_dict.items()}
             if setting_dict is not None:
                 setting_dict = shuffle_dict(setting_dict)

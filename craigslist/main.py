@@ -92,9 +92,11 @@ def web_loader(url, browser=None):
     else:
         closer_browser = False
     browser.get(url)
-    time.sleep(1)
+    refresh_wait = random.randint(3, 6)
+    time.sleep(refresh_wait)
     browser.execute_script("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});")
-    time.sleep(1)
+    refresh_wait = random.randint(3, 6)
+    time.sleep(refresh_wait)
     # return str(browser.page_source)[10:20]
     page_source = browser.page_source
     if closer_browser:
@@ -337,7 +339,8 @@ def _main(argv=None):
 
     try:
         browser = webdriver.Firefox()
-        time.sleep(1)
+        refresh_wait = random.randint(3, 6)
+        time.sleep(refresh_wait)
     except WebDriverException:
         browser = None
 

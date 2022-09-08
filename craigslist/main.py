@@ -8,6 +8,7 @@ import random
 import smtplib
 from sys import platform
 import time
+from urllib.parse import quote
 
 from datetime import datetime
 from datetime import time as datetime_time
@@ -288,6 +289,7 @@ def _main(argv=None):
     if os.path.exists(args.setting_file):
         with open(args.setting_file) as fp:
             setting_dict = yaml.safe_load(fp)
+        setting_dict = {k: quote(f'{v}) for k, v in setting_dict.items()}
     else:
         setting_dict = None
 
@@ -331,6 +333,10 @@ def _main(argv=None):
             sleep_time = NIGHT_SLEEPING_TIME
             email_counter = 0
         else:
+            if os.path.exists(args.setting_file):
+                with open(args.setting_file) as fp:
+                    setting_dict = yaml.safe_load(fp)
+                setting_dict = {k: quote(f'{v}) for k, v in setting_dict.items()}
             if setting_dict is not None:
                 setting_dict = shuffle_dict(setting_dict)
             url = get_url(url_template, setting_dict=setting_dict)

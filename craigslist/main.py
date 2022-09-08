@@ -1,5 +1,7 @@
 import argparse
 from email.mime.text import MIMEText
+import logging
+from logging.handlers import TimedRotatingFileHandler
 import os
 import re
 import random
@@ -10,7 +12,6 @@ import time
 from datetime import datetime
 from datetime import time as datetime_time
 import pytz
-import logging
 from enum import Enum
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
@@ -59,7 +60,7 @@ def setup_logging(log_file):
     print_fh.setLevel(logging.DEBUG)
     print_fh.setFormatter(formatter)
 
-    log_fh = logging.TimedRotatingFileHandler(log_file, when='midnight', backupCount=1, encoding="utf-8")
+    log_fh = TimedRotatingFileHandler(log_file, when='midnight', backupCount=1, encoding="utf-8")
     log_fh.setLevel(logging.DEBUG)
     log_fh.setFormatter(formatter)
 

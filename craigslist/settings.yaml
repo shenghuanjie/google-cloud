@@ -3,3 +3,30 @@ postedToday: 1
 search_distance: 25
 sort: date
 query: gravel | electronics | cooler | grass | excellent | good | great | new | working | garden | tools | supply | paint | hula | everything
+skipping:
+  TITLE:
+    - bed
+    - moving box
+    - box spring
+    - lovesac
+    - mattress
+    - kitten
+    - sofa
+    - pallet
+    - dirt
+    - cat
+    - dog
+    - cabinet
+    - foam
+    - lovesac
+  LOCATION:
+    - lafayette
+    - oakland
+    - redwood city
+    - san mateo
+    - belmont
+    - san leandro
+    - menlo park
+    - san leandro
+    - morgan hill
+    - san ramon

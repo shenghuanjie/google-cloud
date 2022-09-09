@@ -136,7 +136,7 @@ def shuffle_list(l):
     return l
 
 
-def scrap_craigslist(url, post_handle, existing_posts,
+def scrap_craigslist(url, post_handle, existing_posts, skipping_dict=None,
                      browser=None, debug_filename=DEBUG_FILENAME,
                      debug=False):
     page_source = '[NOTHING YET]'
@@ -158,11 +158,27 @@ def scrap_craigslist(url, post_handle, existing_posts,
     if results:
         new_results = []
         writing_post_ids = []
+        print('skipping_dict: ', skipping_dict)
         for result in results:
             post_id = result[patternName.TITLE] + '|' + result[patternName.POST_LINK]
             if post_id not in existing_posts:
-                new_results.append(result)
-                writing_post_ids.append(post_id)
+                skip_result = ''
+                if skipping_dict:
+                    for result_key, skip_values in skipping_dict.items():
+                        if skip_result:
+                            break
+                        result_value = result[patternName[result_key]].lower()
+                        for skip_value in skip_values:
+                            if result_value.find(skip_value.lower()) != -1:
+                                skip_result = f'{result_key}: {skip_value}'
+                                break
+
+                if not skip_result:
+                    new_results.append(result)
+                    writing_post_ids.append(post_id)
+                else:
+                    if debug:
+                        logger.info(f'{post_id} skipped due to skip_value found: {skip_result}')
         if new_results:
             existing_posts.update(writing_post_ids)
             logger.info(f'having {len(new_results)} new results.')
@@ -313,7 +329,8 @@ def _main(argv=None):
             setting_dict = yaml.safe_load(fp)
         if 'query' in setting_dict:
             setting_dict['query'] = '|'.join(shuffle_list(setting_dict['query'].split('|')))
-        setting_dict = {k: quote(f'{v}') for k, v in setting_dict.items()}
+        skipping_dict = setting_dict.get('skipping', {})
+        setting_dict = {k: quote(f'{v}') for k, v in setting_dict.items() if not isinstance(v, dict)}
     else:
         setting_dict = None
 
@@ -364,7 +381,8 @@ def _main(argv=None):
                     setting_dict = yaml.safe_load(fp)
                 if 'query' in setting_dict:
                     setting_dict['query'] = '|'.join(shuffle_list(setting_dict['query'].split('|')))
-                setting_dict = {k: quote(f'{v}') for k, v in setting_dict.items()}
+                skipping_dict = setting_dict.get('skipping', {})
+                setting_dict = {k: quote(f'{v}') for k, v in setting_dict.items() if not isinstance(v, dict)}
             if setting_dict is not None:
                 setting_dict = shuffle_dict(setting_dict)
             url = get_url(url_template, setting_dict=setting_dict)
@@ -372,7 +390,7 @@ def _main(argv=None):
                 logger.info(f'Searching URL: {url}')
             # a new day, reset sleep_time to default
             new_posts = scrap_craigslist(
-                url, post_handle, existing_posts,
+                url, post_handle, existing_posts, skipping_dict=skipping_dict,
                 browser=browser, debug=args.debug)
             # no notification the first search per day
             if sleep_time == default_sleep_time:

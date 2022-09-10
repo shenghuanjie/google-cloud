@@ -101,7 +101,8 @@ def web_loader(url, browser=None):
     # return str(browser.page_source)[10:20]
     page_source = browser.page_source
     if closer_browser:
-        browser.close()
+        browser.quit()
+        del browser
     return page_source
 
 

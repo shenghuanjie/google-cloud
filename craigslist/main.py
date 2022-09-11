@@ -5,6 +5,7 @@ from logging.handlers import TimedRotatingFileHandler
 import os
 import re
 import random
+import signal
 import smtplib
 from sys import platform
 import time
@@ -31,6 +32,7 @@ DEFAULT_EMAIL = 'drhsheng@gmail.com'
 NIGHT_SLEEPING_TIME = 3600
 MAX_NUM_EMAIL_PER_DAY = 200
 EMAIL_COUNTER_KEY = 'EMAIL_COUNTER'
+GECKODRIVER_LOG = 'geckodriver.log'
 POST_PATTERN = (
     "class=\"cl-search-result cl-search-view-mode-gallery\""
     + ".*?"
@@ -54,9 +56,43 @@ class patternName(int, Enum):
     DISTANCE = 5
 
 
+def timeout(seconds):
+    if seconds < 0:
+        raise ValueError('"seconds" must be non-negative. {seconds} is given.')
+
+    def wrapped_func(func):
+
+        err_msg = f'{func.__name__} timeout.'
+
+        def handler(signum, frame):
+            raise TimeoutError(err_msg)
+
+        def new_func(*args, **kwargs):
+            if seconds <= 0:
+                raise TimeoutError(err_msg)
+            old = signal.signal(signal.SIGALRM, handler)
+            old_seconds_left = signal.alarm(seconds)
+            # continue with time left
+            if 0 < old_seconds_left < seconds:
+                signal.alarm(old_seconds_left)
+            start_time = time.time()
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                if old_seconds_left > 0:
+                    old_seconds_left -= time.time() - start_time
+                    old_seconds_left = max(round(old_seconds_left), 0)
+                signal.signal(signal.SIGALRM, old)
+                signal.alarm(old_seconds_left)
+            return result
+        new_func.__name__ = func.__name__
+        return new_func
+    return wrapped_func
+
+
 def setup_logging(log_file, debug=False):
     fmt = '%(asctime)s %(levelname)-9s: [%(name)s:%(lineno)s]: %(message)s'
-    datefmt = '%Y-%m-%d %H:M:%S'
+    datefmt = '%Y-%m-%d %H:%M:%S(%Z)'
     formatter = logging.Formatter(fmt, datefmt)
     print_fh = logging.StreamHandler()
     print_fh.setLevel(logging.DEBUG)
@@ -82,22 +118,32 @@ def web_loader(url, browser=None):
     # browser = webdriver.Firefox(firefox_binary=binary)
     if browser is None:
         closer_browser = True
-        firefox_profile = webdriver.FirefoxProfile()
+        # firefox_profile = webdriver.FirefoxProfile()
         # firefox_profile.set_preference("general.useragent.override", "whatever you want")
         firefox_options = webdriver.FirefoxOptions()
         firefox_options.add_argument("--headless")
+        firefox_options.add_argument("start-maximized")
+        firefox_options.add_argument("disable-infobars")
+        firefox_options.add_argument("--disable-extensions")
+        firefox_options.add_argument('--no-sandbox')
+        firefox_options.add_argument('--disable-application-cache')
+        firefox_options.add_argument('--disable-gpu')
+        firefox_options.add_argument("--disable-dev-shm-usage")
         # firefox_options.add_argument("user-agent={user_agent}")
-        # fireFoxOptions.add_argument("--start-maximized")
-        browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
-        time.sleep(1)
+        browser = webdriver.Firefox(options=firefox_options)
+        # browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
+        time.sleep(2)
     else:
         closer_browser = False
     browser.get(url)
     refresh_wait = random.randint(3, 6)
     time.sleep(refresh_wait)
-    browser.execute_script("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});")
-    refresh_wait = random.randint(3, 6)
-    time.sleep(refresh_wait)
+    num_chunks = random.randint(2, 4)
+    # window.scrollTo({top: Math.round(document.body.scrollHeight * 2 / 3), behavior: 'smooth'});
+    for ichunk in range(1, num_chunks + 1):
+        browser.execute_script("window.scrollTo({top: Math.round(document.body.scrollHeight * " + f"{ichunk} / {num_chunks}" + "), behavior: 'smooth'});")
+        refresh_wait = random.randint(5 - num_chunks, 7 - num_chunks)
+        time.sleep(refresh_wait)
     # return str(browser.page_source)[10:20]
     page_source = browser.page_source
     if closer_browser:
@@ -121,8 +167,7 @@ def in_between(now, start, end):
 
 def is_night(night_start=1, night_end=7):
     pacific_time = get_pacific_time()
-    return in_between(pacific_time.time(),
-        datetime_time(night_start), datetime_time(night_end))
+    return in_between(pacific_time.time(), datetime_time(night_start), datetime_time(night_end))
 
 
 def shuffle_dict(d):
@@ -137,6 +182,7 @@ def shuffle_list(l):
     return l
 
 
+@timeout(second=60)
 def scrap_craigslist(url, post_handle, existing_posts, skipping_dict=None,
                      browser=None, debug_filename=DEBUG_FILENAME,
                      debug=False):
@@ -251,7 +297,7 @@ def send_email(posts, emails, email_quota=0, **kwargs):
         _send_email(f'{email_counter} emails has been sent today and the limit is {MAX_NUM_EMAIL_PER_DAY}.',
                     'Email Quota Reached in Free Stuff Found on Craigslist',
                     DEFAULT_EMAIL, is_bug=True)
-    title = 'Multiple New Posts Found' if len(posts) > 1 else 'New Post Found'
+    title = 'Multiple Free Stuff Found on Craigslist' if len(posts) > 1 else 'New Free Stuff Found on Craigslist'
     html_body = '\\n'.join(make_html_body(post) for post in posts)
     _send_email(html_body, title, emails)
 
@@ -376,6 +422,8 @@ def _main(argv=None):
             # once we detect it's night time, we sleep longer
             sleep_time = NIGHT_SLEEPING_TIME
             os.environ[EMAIL_COUNTER_KEY] = str(0)
+            if os.path.isfile(GECKODRIVER_LOG):
+                os.remove(GECKODRIVER_LOG)
         else:
             if os.path.exists(args.setting_file):
                 with open(args.setting_file) as fp:

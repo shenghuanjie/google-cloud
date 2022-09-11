@@ -438,9 +438,14 @@ def _main(argv=None):
             if args.debug:
                 logger.info(f'Searching URL: {url}')
             # a new day, reset sleep_time to default
-            new_posts = scrap_craigslist(
-                url, post_handle, existing_posts, skipping_dict=skipping_dict,
-                browser=browser, debug=args.debug)
+            try:
+                new_posts = scrap_craigslist(
+                    url, post_handle, existing_posts, skipping_dict=skipping_dict,
+                    browser=browser, debug=args.debug)
+            except TimeoutError as e:
+                exception_txt = str(e)
+                _send_email(exception_txt, 'BUG Reported from Free Stuff Found on Craigslist',
+                            DEFAULT_EMAIL, is_bug=True)
             # no notification the first search per day
             if sleep_time == default_sleep_time:
                 notify(posts=new_posts, **notify_kwargs)

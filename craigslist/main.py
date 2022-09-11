@@ -156,7 +156,7 @@ def web_loader(url, browser=None):
             del browser
     finally:
         if browser is not None:
-            brwoser.quit()
+            browser.quit()
             del browser
     return page_source
 
@@ -404,7 +404,7 @@ def get_args(argv=None):
     return args
 
 
-def _scrapper(url_template, setting_filename, existing_post_filename, new_post_filename, browser, sleep_time, default_sleep_time, debug):
+def _scrapper(url_template, setting_filename, existing_post_filename, new_post_filename, sleep_time, default_sleep_time, browser, debug):
     if os.path.exists(setting_filename):
         with open(setting_filename) as fp:
             setting_dict = yaml.safe_load(fp)

@@ -153,11 +153,10 @@ def web_loader(url, browser=None):
         page_source = browser.page_source
         if closer_browser:
             browser.quit()
-            del browser
+            browser = None
     finally:
         if browser is not None:
             browser.quit()
-            del browser
     return page_source
 
 
@@ -404,7 +403,7 @@ def get_args(argv=None):
     return args
 
 
-def _scrapper(url_template, setting_filename, existing_post_filename, new_post_filename, sleep_time, default_sleep_time, browser, debug):
+def _scrapper(url_template, setting_filename, existing_post_filename, new_post_filename, sleep_time, default_sleep_time, browser, notify_kwargs, debug):
     if os.path.exists(setting_filename):
         with open(setting_filename) as fp:
             setting_dict = yaml.safe_load(fp)
@@ -502,7 +501,7 @@ def _main(argv=None):
             if os.path.isfile(GECKODRIVER_LOG):
                 os.remove(GECKODRIVER_LOG)
         else:
-            scrapper_args = (url_template, setting_filename, existing_post_filename, new_post_filename, sleep_time, default_sleep_time, browser, debug)
+            scrapper_args = (url_template, setting_filename, existing_post_filename, new_post_filename, sleep_time, default_sleep_time, browser, notify_kwargs, debug)
             if browser is None:
                 scrapper(*scrapper_args)
             else:

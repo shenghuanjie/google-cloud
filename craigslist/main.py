@@ -120,39 +120,44 @@ def web_loader(url, browser=None):
     # logger.info(os.environ['PATH'])
     # binary = FirefoxBinary(os.path.join(firefox_path, 'firefox.exe'))
     # browser = webdriver.Firefox(firefox_binary=binary)
-    if browser is None:
-        closer_browser = True
-        # firefox_profile = webdriver.FirefoxProfile()
-        # firefox_profile.set_preference("general.useragent.override", "whatever you want")
-        firefox_options = webdriver.FirefoxOptions()
-        firefox_options.add_argument("--headless")
-        # firefox_options.add_argument("start-maximized")
-        # firefox_options.add_argument("disable-infobars")
-        # firefox_options.add_argument("--disable-extensions")
-        firefox_options.add_argument('--no-sandbox')
-        # firefox_options.add_argument('--disable-application-cache')
-        firefox_options.add_argument('--disable-gpu')
-        # firefox_options.add_argument("--disable-dev-shm-usage")
-        # firefox_options.add_argument("user-agent={user_agent}")
-        browser = webdriver.Firefox(options=firefox_options)
-        # browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
-        time.sleep(2)
-    else:
-        closer_browser = False
-    browser.get(url)
-    refresh_wait = random.randint(3, 6)
-    time.sleep(refresh_wait)
-    num_chunks = random.randint(2, 4)
-    # window.scrollTo({top: Math.round(document.body.scrollHeight * 2 / 3), behavior: 'smooth'});
-    for ichunk in range(1, num_chunks + 1):
-        browser.execute_script("window.scrollTo({top: Math.round(document.body.scrollHeight * " + f"{ichunk} / {num_chunks}" + "), behavior: 'smooth'});")
-        refresh_wait = random.randint(5 - num_chunks, 7 - num_chunks)
+    try:
+        if browser is None:
+            closer_browser = True
+            # firefox_profile = webdriver.FirefoxProfile()
+            # firefox_profile.set_preference("general.useragent.override", "whatever you want")
+            firefox_options = webdriver.FirefoxOptions()
+            firefox_options.add_argument("--headless")
+            # firefox_options.add_argument("start-maximized")
+            # firefox_options.add_argument("disable-infobars")
+            # firefox_options.add_argument("--disable-extensions")
+            firefox_options.add_argument('--no-sandbox')
+            # firefox_options.add_argument('--disable-application-cache')
+            firefox_options.add_argument('--disable-gpu')
+            # firefox_options.add_argument("--disable-dev-shm-usage")
+            # firefox_options.add_argument("user-agent={user_agent}")
+            browser = webdriver.Firefox(options=firefox_options)
+            # browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
+            time.sleep(2)
+        else:
+            closer_browser = False
+        browser.get(url)
+        refresh_wait = random.randint(3, 6)
         time.sleep(refresh_wait)
-    # return str(browser.page_source)[10:20]
-    page_source = browser.page_source
-    if closer_browser:
-        browser.quit()
-        del browser
+        num_chunks = random.randint(2, 4)
+        # window.scrollTo({top: Math.round(document.body.scrollHeight * 2 / 3), behavior: 'smooth'});
+        for ichunk in range(1, num_chunks + 1):
+            browser.execute_script("window.scrollTo({top: Math.round(document.body.scrollHeight * " + f"{ichunk} / {num_chunks}" + "), behavior: 'smooth'});")
+            refresh_wait = random.randint(5 - num_chunks, 7 - num_chunks)
+            time.sleep(refresh_wait)
+        # return str(browser.page_source)[10:20]
+        page_source = browser.page_source
+        if closer_browser:
+            browser.quit()
+            del browser
+    finally:
+        if browser is not None:
+            brwoser.quit()
+            del browser
     return page_source
 
 

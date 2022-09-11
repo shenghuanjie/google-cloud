@@ -130,9 +130,9 @@ def web_loader(url, browser=None):
             # firefox_options.add_argument("start-maximized")
             # firefox_options.add_argument("disable-infobars")
             # firefox_options.add_argument("--disable-extensions")
-            firefox_options.add_argument('--no-sandbox')
+            # firefox_options.add_argument('--no-sandbox')
             # firefox_options.add_argument('--disable-application-cache')
-            firefox_options.add_argument('--disable-gpu')
+            # firefox_options.add_argument('--disable-gpu')
             # firefox_options.add_argument("--disable-dev-shm-usage")
             # firefox_options.add_argument("user-agent={user_agent}")
             browser = webdriver.Firefox(options=firefox_options)
@@ -216,7 +216,7 @@ def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_di
         if debug:
             logger.info(page_source)
     except Exception as exception:
-        logger.info(str(exception))
+        logger.critical(str(exception))
         with open(debug_filename, 'w', encoding='utf-8') as fp:
             print(str(page_source), file=fp)
         return []
@@ -422,6 +422,7 @@ def _scrapper(url_template, setting_filename, existing_post_filename, new_post_f
             url, existing_post_filename, new_post_filename, skipping_dict=skipping_dict,
             browser=browser, debug=debug)
     except Exception as e:
+        new_posts = []
         exception_txt = f'error in scrap_craigslist: {e}'
         _send_email(exception_txt, 'BUG Reported from Free Stuff Found on Craigslist',
                     DEFAULT_EMAIL, is_bug=True)
@@ -431,6 +432,8 @@ def _scrapper(url_template, setting_filename, existing_post_filename, new_post_f
 
 
 def scrapper(*args):
+    if args[-1]:
+        logger.info(args)
     try:
         _scrapper(*args)
     except Exception as e:

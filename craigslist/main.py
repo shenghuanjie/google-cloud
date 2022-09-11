@@ -2,9 +2,11 @@ import argparse
 from email.mime.text import MIMEText
 import logging
 from logging.handlers import TimedRotatingFileHandler
+import multiprocessing
 import os
 import re
 import random
+import subprocess
 import signal
 import smtplib
 from sys import platform
@@ -26,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 
 EXISTING_POST_FILENAME = 'existing_posts.txt'
+NEW_POST_FILENAME = 'new_posts.txt'
 SLEEPING_TIME = 60
 DEBUG_FILENAME = 'debug.html'
 DEFAULT_EMAIL = 'drhsheng@gmail.com'
@@ -122,13 +125,13 @@ def web_loader(url, browser=None):
         # firefox_profile.set_preference("general.useragent.override", "whatever you want")
         firefox_options = webdriver.FirefoxOptions()
         firefox_options.add_argument("--headless")
-        firefox_options.add_argument("start-maximized")
-        firefox_options.add_argument("disable-infobars")
-        firefox_options.add_argument("--disable-extensions")
+        # firefox_options.add_argument("start-maximized")
+        # firefox_options.add_argument("disable-infobars")
+        # firefox_options.add_argument("--disable-extensions")
         firefox_options.add_argument('--no-sandbox')
-        firefox_options.add_argument('--disable-application-cache')
+        # firefox_options.add_argument('--disable-application-cache')
         firefox_options.add_argument('--disable-gpu')
-        firefox_options.add_argument("--disable-dev-shm-usage")
+        # firefox_options.add_argument("--disable-dev-shm-usage")
         # firefox_options.add_argument("user-agent={user_agent}")
         browser = webdriver.Firefox(options=firefox_options)
         # browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
@@ -182,8 +185,24 @@ def shuffle_list(l):
     return l
 
 
-@timeout(seconds=120)
-def scrap_craigslist(url, post_handle, existing_posts, skipping_dict=None,
+def get_pipeline_result(cmd):
+    ps = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = ps.communicate()
+    return stdout.decode(), (stderr.decode() if stderr is not None else stderr)
+
+
+def load_update_existing_posts(existing_post_filename):
+    if os.path.exists(existing_post_filename):
+        with open(existing_post_filename, encoding="utf-8") as fp:
+            existing_posts = set(ln.strip() for ln in fp.readlines())
+        post_handle = open(existing_post_filename, 'a', encoding="utf-8")
+    else:
+        existing_posts = set()
+        post_handle = open(existing_post_filename, 'w', encoding="utf-8")
+    return post_handle, existing_posts
+
+
+def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_dict=None,
                      browser=None, debug_filename=DEBUG_FILENAME,
                      debug=False):
     page_source = '[NOTHING YET]'
@@ -205,7 +224,16 @@ def scrap_craigslist(url, post_handle, existing_posts, skipping_dict=None,
     if results:
         new_results = []
         writing_post_ids = []
-        print('skipping_dict: ', skipping_dict)
+        if debug:
+            logger.info('skipping_dict: ', skipping_dict)
+        with open(new_post_filename, 'w', encoding="utf-8") as fp:
+            print('\n'.join(result[patternName.TITLE] + '|' + result[patternName.POST_LINK]
+                            for result in results), file=fp)
+
+        stdout, stderr = get_pipeline_result(f'grep -F -x -v -f {existing_post_filename} {new_post_filename}')
+        if stderr is not None:
+            raise ValueError(str(stderr))
+        existing_posts = set(stdout.split('\n'))
         for result in results:
             post_id = result[patternName.TITLE] + '|' + result[patternName.POST_LINK]
             if post_id not in existing_posts:
@@ -219,7 +247,6 @@ def scrap_craigslist(url, post_handle, existing_posts, skipping_dict=None,
                             if result_value.find(skip_value.lower()) != -1:
                                 skip_result = f'{result_key}: {skip_value}'
                                 break
-
                 if not skip_result:
                     new_results.append(result)
                     writing_post_ids.append(post_id)
@@ -229,7 +256,8 @@ def scrap_craigslist(url, post_handle, existing_posts, skipping_dict=None,
         if new_results:
             existing_posts.update(writing_post_ids)
             logger.info(f'having {len(new_results)} new results.')
-            print('\n'.join(writing_post_ids), file=post_handle)
+            with open(existing_post_filename, 'a', encoding="utf-8") as fp:
+                print('\n'.join(writing_post_ids), file=fp)
         else:
             logger.info('nothing new')
         return new_results
@@ -241,14 +269,11 @@ def scrap_craigslist(url, post_handle, existing_posts, skipping_dict=None,
         return []
 
 
-def nightly_idle_and_flush(existing_post_filename, post_handle, existing_posts):
+def nightly_idle_and_flush(existing_post_filename):
     pacific_time = get_pacific_time()
-    logger.info(f'Is night now: {pacific_time}. Resetting existing posts.')
-    if existing_posts:
-        existing_posts.clear()
-        post_handle.close()
-        post_handle = open(existing_post_filename, 'w', encoding="utf-8")
-    return post_handle
+    logger.info(f'It is night now: {pacific_time}. Resetting existing posts.')
+    os.system(f'rm -f {existing_post_filename}')
+    os.system(f'touch {existing_post_filename}')
 
 
 def get_url(url_template, setting_dict=None):
@@ -340,6 +365,10 @@ def get_args(argv=None):
         help='existing posts file'
     )
     parser.add_argument(
+        '--new-post-file', default=NEW_POST_FILENAME, type=str,
+        help='temporary new posts file'
+    )
+    parser.add_argument(
         '--debug-file', default=DEBUG_FILENAME, type=str,
         help='debug file'
     )
@@ -363,6 +392,33 @@ def get_args(argv=None):
     args = parser.parse_args(args=argv)
     setup_logging(args.log_file, args.debug)
     return args
+
+
+def scrapper(url_template, setting_filename, existing_post_filename, new_post_filename, debug):
+    if os.path.exists(setting_filename):
+        with open(setting_filename) as fp:
+            setting_dict = yaml.safe_load(fp)
+        if 'query' in setting_dict:
+            setting_dict['query'] = '|'.join(shuffle_list(setting_dict['query'].split('|')))
+        skipping_dict = setting_dict.get('skipping', {})
+        setting_dict = {k: quote(f'{v}') for k, v in setting_dict.items() if not isinstance(v, dict)}
+    if setting_dict is not None:
+        setting_dict = shuffle_dict(setting_dict)
+    url = get_url(url_template, setting_dict=setting_dict)
+    if debug:
+        logger.info(f'Searching URL: {url}')
+    # a new day, reset sleep_time to default
+    try:
+        new_posts = scrap_craigslist(
+            url, existing_post_filename, new_post_filename, skipping_dict=skipping_dict,
+            browser=browser, debug=debug)
+    except TimeoutError as e:
+        exception_txt = str(e)
+        _send_email(exception_txt, 'BUG Reported from Free Stuff Found on Craigslist',
+                    DEFAULT_EMAIL, is_bug=True)
+    # no notification the first search per day
+    if sleep_time == default_sleep_time:
+        notify(posts=new_posts, **notify_kwargs)
 
 
 def _main(argv=None):
@@ -393,17 +449,13 @@ def _main(argv=None):
 
     """Return a friendly HTTP greeting."""
     existing_post_filename = args.existing_post_file
+    new_post_filename = args.new_post_file
+    setting_filename = args.setting_file
     default_sleep_time = args.sleep_time
+    debug = args.debug
     sleep_time = default_sleep_time
     nightly_flush_done = False
 
-    if os.path.exists(existing_post_filename):
-        with open(existing_post_filename, encoding="utf-8") as fp:
-            existing_posts = set(ln.strip() for ln in fp.readlines())
-        post_handle = open(existing_post_filename, 'a', encoding="utf-8")
-    else:
-        existing_posts = set()
-        post_handle = open(existing_post_filename, 'w', encoding="utf-8")
     exception = None
 
     try:
@@ -415,40 +467,26 @@ def _main(argv=None):
 
     if EMAIL_COUNTER_KEY not in os.environ:
         os.environ[EMAIL_COUNTER_KEY] = str(0)
+
+    if not os.path.exists(existing_post_filename):
+        os.system(f'touch {existing_post_filename}')
+
     while True:
         if is_night(*args.night_time):
-            post_handle = nightly_idle_and_flush(
-                existing_post_filename, post_handle, existing_posts)
+            nightly_idle_and_flush(existing_post_filename)
             # once we detect it's night time, we sleep longer
             sleep_time = NIGHT_SLEEPING_TIME
             os.environ[EMAIL_COUNTER_KEY] = str(0)
             if os.path.isfile(GECKODRIVER_LOG):
                 os.remove(GECKODRIVER_LOG)
         else:
-            if os.path.exists(args.setting_file):
-                with open(args.setting_file) as fp:
-                    setting_dict = yaml.safe_load(fp)
-                if 'query' in setting_dict:
-                    setting_dict['query'] = '|'.join(shuffle_list(setting_dict['query'].split('|')))
-                skipping_dict = setting_dict.get('skipping', {})
-                setting_dict = {k: quote(f'{v}') for k, v in setting_dict.items() if not isinstance(v, dict)}
-            if setting_dict is not None:
-                setting_dict = shuffle_dict(setting_dict)
-            url = get_url(url_template, setting_dict=setting_dict)
-            if args.debug:
-                logger.info(f'Searching URL: {url}')
-            # a new day, reset sleep_time to default
-            try:
-                new_posts = scrap_craigslist(
-                    url, post_handle, existing_posts, skipping_dict=skipping_dict,
-                    browser=browser, debug=args.debug)
-            except TimeoutError as e:
-                exception_txt = str(e)
-                _send_email(exception_txt, 'BUG Reported from Free Stuff Found on Craigslist',
-                            DEFAULT_EMAIL, is_bug=True)
-            # no notification the first search per day
-            if sleep_time == default_sleep_time:
-                notify(posts=new_posts, **notify_kwargs)
+            scrapper_args = (url_template, setting_filename, existing_post_filename, new_post_filename, debug)
+            if browser is None:
+                scrapper(*scrapper_args)
+            else:
+                proc = multiprocessing.Process(target=scrapper, args=scrapper_args)
+                proc.start()
+                proc.join()
             sleep_time = default_sleep_time
         logger.info(f'Processing done. Sleep for {sleep_time} seconds.')
         time.sleep(sleep_time)

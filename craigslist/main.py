@@ -412,8 +412,8 @@ def _scrapper(url_template, setting_filename, existing_post_filename, new_post_f
         new_posts = scrap_craigslist(
             url, existing_post_filename, new_post_filename, skipping_dict=skipping_dict,
             browser=browser, debug=debug)
-    except TimeoutError as e:
-        exception_txt = str(e)
+    except Exception as e:
+        exception_txt = f'error in scrap_craigslist: {e}'
         _send_email(exception_txt, 'BUG Reported from Free Stuff Found on Craigslist',
                     DEFAULT_EMAIL, is_bug=True)
     # no notification the first search per day
@@ -425,7 +425,7 @@ def scrapper(*args):
     try:
         _scrapper(*args)
     except Exception as e:
-        exception_txt = str(e)
+        exception_txt = f'error in scrapper: {e}'
         logger.error(exception_txt)
         _send_email(exception_txt, 'BUG Reported from Free Stuff Found on Craigslist',
                     DEFAULT_EMAIL, is_bug=True)

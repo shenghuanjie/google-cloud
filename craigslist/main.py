@@ -4,6 +4,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import multiprocessing
 import os
+from pathlib import Path
 import re
 import random
 import subprocess
@@ -229,11 +230,14 @@ def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_di
         with open(new_post_filename, 'w', encoding="utf-8") as fp:
             print('\n'.join(result[patternName.TITLE] + '|' + result[patternName.POST_LINK]
                             for result in results), file=fp)
-
-        stdout, stderr = get_pipeline_result(f'grep -F -x -v -f {existing_post_filename} {new_post_filename}')
-        if stderr is not None:
-            raise ValueError(str(stderr))
-        existing_posts = set(stdout.split('\n'))
+        if platform == 'win32':
+            with open(existing_post_filename, encoding="utf-8") as fp:
+                existing_posts = set(ln.strip() for ln in fp.readlines())
+        else:
+            stdout, stderr = get_pipeline_result(f'grep -F -x -v -f {existing_post_filename} {new_post_filename}')
+            if stderr is not None:
+                raise ValueError(str(stderr))
+            existing_posts = set(stdout.split('\n'))
         for result in results:
             post_id = result[patternName.TITLE] + '|' + result[patternName.POST_LINK]
             if post_id not in existing_posts:
@@ -272,8 +276,9 @@ def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_di
 def nightly_idle_and_flush(existing_post_filename):
     pacific_time = get_pacific_time()
     logger.info(f'It is night now: {pacific_time}. Resetting existing posts.')
-    os.system(f'rm -f {existing_post_filename}')
-    os.system(f'touch {existing_post_filename}')
+    if os.path.isfile(existing_post_filename):
+        os.remove(existing_post_filename)
+    Path(existing_post_filename).touch()
 
 
 def get_url(url_template, setting_dict=None):
@@ -481,7 +486,7 @@ def _main(argv=None):
         os.environ[EMAIL_COUNTER_KEY] = str(0)
 
     if not os.path.exists(existing_post_filename):
-        os.system(f'touch {existing_post_filename}')
+        Path(existing_post_filename).touch()
 
     while True:
         if is_night(*args.night_time):
@@ -502,7 +507,6 @@ def _main(argv=None):
             sleep_time = default_sleep_time
         logger.info(f'Processing done. Sleep for {sleep_time} seconds.')
         time.sleep(sleep_time)
-    post_handle.close()
     if browser is not None:
         browser.close()
 

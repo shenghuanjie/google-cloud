@@ -241,7 +241,7 @@ def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_di
             stdout, stderr = get_pipeline_result(f'grep -F -x -v -f {existing_post_filename} {new_post_filename}')
             if debug:
                 logger.info(f'done with pipeline_result, {stdout} {stderr}')
-            if stderr is not None:
+            if stderr:
                 raise ValueError(str(stderr))
             existing_posts = set(stdout.split('\n'))
         for result in results:

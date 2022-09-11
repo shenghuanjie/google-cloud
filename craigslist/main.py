@@ -239,11 +239,15 @@ def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_di
                 existing_posts = set(ln.strip() for ln in fp.readlines())
         else:
             stdout, stderr = get_pipeline_result(f'grep -F -x -v -f {existing_post_filename} {new_post_filename}')
+            if debug:
+                logger.info(f'done with pipeline_result, {stdout} {stderr}')
             if stderr is not None:
                 raise ValueError(str(stderr))
             existing_posts = set(stdout.split('\n'))
         for result in results:
             post_id = result[patternName.TITLE] + '|' + result[patternName.POST_LINK]
+            if debug:
+                logger.info(f'{post_id} testing')
             if post_id not in existing_posts:
                 skip_result = ''
                 if skipping_dict:
@@ -262,7 +266,6 @@ def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_di
                     if debug:
                         logger.info(f'{post_id} skipped due to skip_value found: {skip_result}')
         if new_results:
-            existing_posts.update(writing_post_ids)
             logger.info(f'having {len(new_results)} new results.')
             with open(existing_post_filename, 'a', encoding="utf-8") as fp:
                 print('\n'.join(writing_post_ids), file=fp)

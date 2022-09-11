@@ -182,7 +182,7 @@ def shuffle_list(l):
     return l
 
 
-@timeout(second=60)
+@timeout(seconds=60)
 def scrap_craigslist(url, post_handle, existing_posts, skipping_dict=None,
                      browser=None, debug_filename=DEBUG_FILENAME,
                      debug=False):

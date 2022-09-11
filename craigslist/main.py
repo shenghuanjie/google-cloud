@@ -228,7 +228,6 @@ def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_di
     #     print(make_html_body(results[0]), file=fp)
     if results:
         new_results = []
-        writing_post_ids = []
         if debug:
             logger.info('skipping_dict: ', skipping_dict)
         with open(new_post_filename, 'w', encoding="utf-8") as fp:
@@ -237,18 +236,20 @@ def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_di
         if platform == 'win32':
             with open(existing_post_filename, encoding="utf-8") as fp:
                 existing_posts = set(ln.strip() for ln in fp.readlines())
+            new_post_ids = [result[patternName.TITLE] + '|' + result[patternName.POST_LINK] for result in results]
+            new_post_ids = [post_id for post_id in new_post_ids if post_id not in existing_posts]
         else:
             stdout, stderr = get_pipeline_result(f'grep -F -x -v -f {existing_post_filename} {new_post_filename}')
             if debug:
                 logger.info(f'done with pipeline_result, {stdout} {stderr}')
             if stderr:
                 raise ValueError(str(stderr))
-            existing_posts = set(stdout.split('\n'))
+            new_post_ids = list(filter(None, stdout.split('\n')))
         for result in results:
             post_id = result[patternName.TITLE] + '|' + result[patternName.POST_LINK]
             if debug:
                 logger.info(f'{post_id} testing')
-            if post_id not in existing_posts:
+            if post_id in new_post_ids:
                 skip_result = ''
                 if skipping_dict:
                     for result_key, skip_values in skipping_dict.items():
@@ -261,14 +262,13 @@ def scrap_craigslist(url, existing_post_filename, new_post_filename, skipping_di
                                 break
                 if not skip_result:
                     new_results.append(result)
-                    writing_post_ids.append(post_id)
                 else:
                     if debug:
                         logger.info(f'{post_id} skipped due to skip_value found: {skip_result}')
         if new_results:
             logger.info(f'having {len(new_results)} new results.')
             with open(existing_post_filename, 'a', encoding="utf-8") as fp:
-                print('\n'.join(writing_post_ids), file=fp)
+                print('\n'.join(new_post_ids), file=fp)
         else:
             logger.info('nothing new')
         return new_results

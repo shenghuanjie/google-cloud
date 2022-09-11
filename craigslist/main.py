@@ -394,7 +394,7 @@ def get_args(argv=None):
     return args
 
 
-def scrapper(url_template, setting_filename, existing_post_filename, new_post_filename, debug):
+def _scrapper(url_template, setting_filename, existing_post_filename, new_post_filename, browser, debug):
     if os.path.exists(setting_filename):
         with open(setting_filename) as fp:
             setting_dict = yaml.safe_load(fp)
@@ -419,6 +419,16 @@ def scrapper(url_template, setting_filename, existing_post_filename, new_post_fi
     # no notification the first search per day
     if sleep_time == default_sleep_time:
         notify(posts=new_posts, **notify_kwargs)
+
+
+def scrapper(*args):
+    try:
+        _scrapper(*args)
+    except Exception as e:
+        exception_txt = str(e)
+        logger.error(exception_txt)
+        _send_email(exception_txt, 'BUG Reported from Free Stuff Found on Craigslist',
+                    DEFAULT_EMAIL, is_bug=True)
 
 
 def _main(argv=None):
@@ -464,6 +474,8 @@ def _main(argv=None):
         time.sleep(refresh_wait)
     except WebDriverException:
         browser = None
+    finally:
+        browser = None
 
     if EMAIL_COUNTER_KEY not in os.environ:
         os.environ[EMAIL_COUNTER_KEY] = str(0)
@@ -480,7 +492,7 @@ def _main(argv=None):
             if os.path.isfile(GECKODRIVER_LOG):
                 os.remove(GECKODRIVER_LOG)
         else:
-            scrapper_args = (url_template, setting_filename, existing_post_filename, new_post_filename, debug)
+            scrapper_args = (url_template, setting_filename, existing_post_filename, new_post_filename, browser, debug)
             if browser is None:
                 scrapper(*scrapper_args)
             else:
@@ -499,6 +511,7 @@ def main(argv=None):
         _main(argv=None)
     except Exception as e:
         exception_txt = str(e)
+        logger.error(exception_txt)
         _send_email(exception_txt, 'BUG Reported from Free Stuff Found on Craigslist',
                     DEFAULT_EMAIL, is_bug=True)
 

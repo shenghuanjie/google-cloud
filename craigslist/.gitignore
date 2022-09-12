@@ -2,4 +2,4 @@
 *.log.*
 existing_posts.txt
 new_posts.txt
-debug.html
+debug*.html

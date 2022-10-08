@@ -135,8 +135,14 @@ def web_loader(url, browser=None):
             # firefox_options.add_argument('--disable-gpu')
             # firefox_options.add_argument("--disable-dev-shm-usage")
             # firefox_options.add_argument("user-agent={user_agent}")
-            browser = webdriver.Firefox(options=firefox_options)
-            # browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
+            profile = webdriver.FirefoxProfile()
+            profile.set_preference("browser.cache.disk.enable", False)
+            profile.set_preference("browser.cache.memory.enable", False)
+            profile.set_preference("browser.cache.offline.enable", False)
+            profile.set_preference("network.http.use-cache", False)
+            driver = webdriver.Firefox(profile)
+            # browser = webdriver.Firefox(options=firefox_options)
+            browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
             time.sleep(2)
         else:
             closer_browser = False

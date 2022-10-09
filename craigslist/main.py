@@ -120,7 +120,7 @@ def web_loader(url, browser=None):
     # logger.info(os.environ['PATH'])
     # binary = FirefoxBinary(os.path.join(firefox_path, 'firefox.exe'))
     # browser = webdriver.Firefox(firefox_binary=binary)
-    os.system('sudo wondershaper ens4 10 9999')
+    os.system('sudo wondershaper ens4 4048 9999')
     try:
         if browser is None:
             closer_browser = True

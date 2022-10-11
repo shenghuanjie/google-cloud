@@ -168,7 +168,7 @@ def web_loader(url, browser=None):
                     download_throughput=500 * 1024,  # maximal throughput
                     upload_throughput=20 * 1024)  # maximal throughput
             except WebDriverException:
-                brower = load_firefox()
+                browser = load_firefox()
             else:
                 raise WebDriverException('Fail to load chrome or firefox.')
             time.sleep(2)

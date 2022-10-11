@@ -120,6 +120,7 @@ def load_chrome():
     binary_path = '/usr/bin/chromium-browser'
     options = webdriver.ChromeOptions()
     options.binary_location = binary_path
+    options.add_argument('start-maximized')
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('disable-infobars')

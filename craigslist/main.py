@@ -122,11 +122,11 @@ def load_chrome():
     options.binary_location = binary_path
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
-    options.add_arguments('disable-infobars')
-    options.add_arguments('--disable-extensions')
-    options.add_arguments('--disable-gpu')
+    options.add_argument('disable-infobars')
+    options.add_argument('--disable-extensions')
+    options.add_argument('--disable-gpu')
     options.add_argument('--disable-dev-shm-usage')
-    options.add_arguments('--disable-extensions')
+    options.add_argument('--disable-extensions')
     options.add_argument('--remote-debugging-port=9222')
     browser = webdriver.Chrome(executable_path=executable_path, chrome_options=options)
     return browser

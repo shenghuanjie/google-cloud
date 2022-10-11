@@ -125,9 +125,11 @@ def load_chrome():
     options.add_argument('disable-infobars')
     options.add_argument('--disable-extensions')
     options.add_argument('--disable-gpu')
+    options.add_argument('--disk-cache-size=0')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-extensions')
-    options.add_argument('--remote-debugging-port=9222')
+    # options.add_argument('--remote-debugging-port=9222')
+    options.add_argument('--remote-debugging-port=9230')
     browser = webdriver.Chrome(executable_path=executable_path, chrome_options=options)
     return browser
 

@@ -167,8 +167,10 @@ def web_loader(url, browser=None):
                     latency=5,  # additional latency (ms)
                     download_throughput=500 * 1024,  # maximal throughput
                     upload_throughput=20 * 1024)  # maximal throughput
+                logger.info('Loaded Chrome')
             except WebDriverException:
                 browser = load_firefox()
+                logger.info('Loaded Firefox')
             else:
                 raise WebDriverException('Fail to load chrome or firefox.')
             time.sleep(2)

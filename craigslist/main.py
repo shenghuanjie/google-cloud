@@ -115,6 +115,42 @@ def setup_logging(log_file, debug=False):
     root_logger.addHandler(log_fh)
 
 
+def load_chrome():
+    executable_path = os.path.join(os.environ['HOME'], 'miniconda/bin/chromedriver')
+    binary_path = '/usr/bin/chromium-browser'
+    options = webdriver.ChromeOptions()
+    options.binary_location = binary_path
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--remote-debugging-port=9222')
+    browser = webdriver.Chrome(executable_path=executable_path, chrome_options=options)
+    return browser
+
+
+def load_firefox():
+    # firefox_profile = webdriver.FirefoxProfile()
+    # firefox_profile.set_preference("general.useragent.override", "whatever you want")
+    firefox_options = webdriver.FirefoxOptions()
+    firefox_options.add_argument("--headless")
+    # firefox_options.add_argument("start-maximized")
+    # firefox_options.add_argument("disable-infobars")
+    # firefox_options.add_argument("--disable-extensions")
+    # firefox_options.add_argument('--no-sandbox')
+    # firefox_options.add_argument('--disable-application-cache')
+    # firefox_options.add_argument('--disable-gpu')
+    # firefox_options.add_argument("--disable-dev-shm-usage")
+    # firefox_options.add_argument("user-agent={user_agent}")
+    firefox_profile = webdriver.FirefoxProfile()
+    firefox_profile.set_preference("browser.cache.disk.enable", False)
+    firefox_profile.set_preference("browser.cache.memory.enable", False)
+    firefox_profile.set_preference("browser.cache.offline.enable", False)
+    firefox_profile.set_preference("network.http.use-cache", False)
+    # browser = webdriver.Firefox(options=firefox_options)
+    browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
+    return browser
+
+
 def web_loader(url, browser=None):
     # os.environ['PATH'] += f';{firefox_path}'
     # logger.info(os.environ['PATH'])
@@ -124,25 +160,17 @@ def web_loader(url, browser=None):
     try:
         if browser is None:
             closer_browser = True
-            # firefox_profile = webdriver.FirefoxProfile()
-            # firefox_profile.set_preference("general.useragent.override", "whatever you want")
-            firefox_options = webdriver.FirefoxOptions()
-            firefox_options.add_argument("--headless")
-            # firefox_options.add_argument("start-maximized")
-            # firefox_options.add_argument("disable-infobars")
-            # firefox_options.add_argument("--disable-extensions")
-            # firefox_options.add_argument('--no-sandbox')
-            # firefox_options.add_argument('--disable-application-cache')
-            # firefox_options.add_argument('--disable-gpu')
-            # firefox_options.add_argument("--disable-dev-shm-usage")
-            # firefox_options.add_argument("user-agent={user_agent}")
-            firefox_profile = webdriver.FirefoxProfile()
-            firefox_profile.set_preference("browser.cache.disk.enable", False)
-            firefox_profile.set_preference("browser.cache.memory.enable", False)
-            firefox_profile.set_preference("browser.cache.offline.enable", False)
-            firefox_profile.set_preference("network.http.use-cache", False)
-            # browser = webdriver.Firefox(options=firefox_options)
-            browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
+            try:
+                browser = load_chrome()
+                browser.set_network_conditions(
+                    offline=False,
+                    latency=5,  # additional latency (ms)
+                    download_throughput=500 * 1024,  # maximal throughput
+                    upload_throughput=20 * 1024)  # maximal throughput
+            except WebDriverException:
+                brower = load_firefox()
+            else:
+                raise WebDriverException('Fail to load chrome or firefox.')
             time.sleep(2)
         else:
             closer_browser = False

@@ -178,8 +178,6 @@ def web_loader(url, browser=None):
             except WebDriverException:
                 browser = load_firefox()
                 logger.info('Loaded Firefox')
-            else:
-                raise WebDriverException('Fail to load chrome or firefox.')
             time.sleep(2)
         else:
             closer_browser = False
@@ -197,6 +195,8 @@ def web_loader(url, browser=None):
         if closer_browser:
             browser.quit()
             browser = None
+    except Exception as e:
+        raise Exception('Fail to load chrome or firefox with message: {e}')
     finally:
         if browser is not None:
             browser.quit()

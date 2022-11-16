@@ -409,7 +409,7 @@ def send_notification(posts, toast=None, duration=20, **kwargs):
     if not posts:
         return
     title = 'Multiple Free Stuff Found on Craigslist' if len(posts) > 1 else 'New Free Stuff Found on Craigslist'
-    body = posts[0][patternName.TITLE] + ': (' + posts[0][patternName.LOCATION] + ' in ' + posts[0][patternName.DISTANCE] + 'mi at ' + posts[0][patternName.TIME] + ')'
+    body = posts[0][patternName.TITLE] + ': (' + posts[0][patternName.LOCATION] + ' in ' + posts[0][patternName.DISTANCE] + ' at ' + posts[0][patternName.TIME] + ')'
     toast.show_toast(
         title, body,
         duration=duration,

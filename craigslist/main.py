@@ -37,18 +37,49 @@ NIGHT_SLEEPING_TIME = 3600
 MAX_NUM_EMAIL_PER_DAY = 200
 EMAIL_COUNTER_KEY = 'EMAIL_COUNTER'
 GECKODRIVER_LOG = 'geckodriver.log'
+
+# POST_PATTERN = (
+#     "class=\"cl-search-result cl-search-view-mode-gallery\""
+#     + ".*?"
+#     + "<img alt=(?:\"\" src=|)\"(.*?)\">"
+#     + ".*?"
+#     + "<a .*? href=\"(https://sfbay.craigslist.org/.*?/zip/\\d+.html?)\" class=\"post-title\">"
+#     + ".*?"
+#     + "<time class=\"post-date\" datetime=\"(\\d+-\\d+-.*?:\\d+:\\d+.*?)\">.*?</time>"
+#     + ".*?"
+#     + "<span class=\"label\">(.*?)</span></a>"
+#     + "<div class=\"bottom-row\"><button type=\"button\".*?</button><span class=\"post-hood\">(.*?)</span><span class=\"distance\">(.*?)</span>"
+# )
+
+
+# class patternName(int, Enum):
+#     IMG_LINK = 0
+#     POST_LINK = 1
+#     TIME = 2
+#     TITLE = 3
+#     LOCATION = 4
+#     DISTANCE = 5
+
 POST_PATTERN = (
     "class=\"cl-search-result cl-search-view-mode-gallery\""
     + ".*?"
+    + "<div class=\"supertitle\">(.*?)</div>"
+    + ".*?"
+    + "<a .*? href=\"(https://sfbay.craigslist.org/.*?/zip/\\d+.html?)\".*?>(.*?)</a>"
+    + ".*?"
+    + "<span title=\"(.*?Time\))\">(.*?)</span>"
+    + ".*?"
     + "<img alt=(?:\"\" src=|)\"(.*?)\">"
-    + ".*?"
-    + "<a .*? href=\"(https://sfbay.craigslist.org/.*?/zip/\\d+.html?)\" class=\"post-title\">"
-    + ".*?"
-    + "<time class=\"post-date\" datetime=\"(\\d+-\\d+-.*?:\\d+:\\d+.*?)\">.*?</time>"
-    + ".*?"
-    + "<span class=\"label\">(.*?)</span></a>"
-    + "<div class=\"bottom-row\"><button type=\"button\".*?</button><span class=\"post-hood\">(.*?)</span><span class=\"distance\">(.*?)</span>"
 )
+
+
+class patternName(int, Enum):
+    IMG_LINK = 5
+    POST_LINK = 1
+    TIME = 3
+    TITLE = 2
+    LOCATION = 0
+    DISTANCE = 4
 
 
 class patternName(int, Enum):

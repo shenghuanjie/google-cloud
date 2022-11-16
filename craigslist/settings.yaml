@@ -2,14 +2,13 @@ postal: 94538
 postedToday: 1
 search_distance: 25
 sort: date
-query: gravel | electronics | cooler | grass | excellent | good | great | new | working | garden | tools | supply | paint | hula | everything
+query: twin | electronics | turf | excellent | good | great | new | working | garden | tools | supply | paint | hula | everything
 skipping:
   TITLE:
     - bed
     - moving box
     - box spring
     - lovesac
-    - mattress
     - kitten
     - sofa
     - pallet
@@ -18,7 +17,6 @@ skipping:
     - dog
     - cabinet
     - foam
-    - lovesac
     - couch
   LOCATION:
     - lafayette

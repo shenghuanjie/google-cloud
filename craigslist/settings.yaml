@@ -2,7 +2,7 @@ postal: 94538
 postedToday: 1
 search_distance: 25
 sort: date
-query: twin | electronics | turf | excellent | good | great | new | working | garden | tools | supply | paint | hula | everything
+query: twin | electronics | turf | excellent | good | great | new | working | garden | tools | supply | wagon | jerk | everything
 skipping:
   TITLE:
     - bed
@@ -16,7 +16,6 @@ skipping:
     - cat
     - dog
     - cabinet
-    - foam
     - couch
   LOCATION:
     - lafayette

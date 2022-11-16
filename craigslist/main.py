@@ -82,15 +82,6 @@ class patternName(int, Enum):
     DISTANCE = 4
 
 
-class patternName(int, Enum):
-    IMG_LINK = 0
-    POST_LINK = 1
-    TIME = 2
-    TITLE = 3
-    LOCATION = 4
-    DISTANCE = 5
-
-
 def timeout(seconds):
     if seconds < 0:
         raise ValueError('"seconds" must be non-negative. {seconds} is given.')

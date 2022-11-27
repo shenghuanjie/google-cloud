@@ -69,7 +69,7 @@ POST_PATTERN = (
     + ".*?"
     + "<span title=\"(.*?Time\))\">(.*?)</span>"
     + ".*?"
-    + "<img alt=(?:\"\" src=|)\"(.*?)\">"
+    + "(?:<img alt=(?:\"\" src=|)\"(.*?)\">|<p>no image</p>)"
 )
 
 

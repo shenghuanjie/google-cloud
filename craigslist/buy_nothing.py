@@ -160,7 +160,7 @@ def load_chrome():
     options.add_argument('disable-infobars')
     options.add_argument('--disable-extensions')
     options.add_argument('--disable-gpu')
-    options.add_argument('--disk-cache-size=0')
+    #options.add_argument('--disk-cache-size=0')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-extensions')
     # options.add_argument('--remote-debugging-port=9222')
@@ -192,14 +192,7 @@ def load_firefox():
     browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
     return browser
 
-
-def web_loader(login_url, page_url, login_filename, browser=None):
-    # os.environ['PATH'] += f';{firefox_path}'
-    # logger.info(os.environ['PATH'])
-    # binary = FirefoxBinary(os.path.join(firefox_path, 'firefox.exe'))
-    # browser = webdriver.Firefox(firefox_binary=binary)
-    # os.system('sudo wondershaper ens4 4048 9999')
-
+def web_login(login_url, login_filename, browser=None):
     try:
         time.sleep(2)
         browser.get(login_url)
@@ -217,10 +210,12 @@ def web_loader(login_url, page_url, login_filename, browser=None):
         # wait for 2-step
         try:
             receive_code = browser.find_element_by_css_selector("input[aria-label='Login code'][type='text']")
+            print('receive_code: ', receive_code)
         except NoSuchElementException:
             # maybe the page has not been loaded yet.
             receive_code = True
         while receive_code is not None:
+            print('receive_code: ', receive_code)
             print('Log in not authorized yet, wait for 5 seconds.')
             time.sleep(5)
             # <input type="text" class="inputtext" id="approvals_code" name="approvals_code" tabindex="1" autocomplete="off" placeholder="Login code" aria-label="Login code">
@@ -229,6 +224,18 @@ def web_loader(login_url, page_url, login_filename, browser=None):
             except NoSuchElementException:
                 print('Log in authorized yet, proceed to posts.')
                 break
+    except Exception as e:
+        raise Exception(f'Login failed with message: {e}')
+
+
+def web_loader(page_url, browser=None):
+    # os.environ['PATH'] += f';{firefox_path}'
+    # logger.info(os.environ['PATH'])
+    # binary = FirefoxBinary(os.path.join(firefox_path, 'firefox.exe'))
+    # browser = webdriver.Firefox(firefox_binary=binary)
+    # os.system('sudo wondershaper ens4 4048 9999')
+
+    try:
 
         browser.get(page_url)
         time.sleep(0.5)
@@ -294,18 +301,18 @@ def load_update_existing_posts(existing_post_filename):
     return post_handle, existing_posts
 
 
-def scrap_fb(login_url, page_url, setting_filename, existing_post_filename,
-             new_post_filename, login_filename,
-             skipping_dict=None, browser=None, debug_filename=DEBUG_FILENAME,
+def scrap_fb(page_url, setting_filename, existing_post_filename,
+             new_post_filename, skipping_dict=None, browser=None,
+             debug_filename=DEBUG_FILENAME,
              debug=False):
     page_source = '[NOTHING YET]'
     try:
-        page_source = web_loader(login_url, page_url, login_filename, browser=browser)
+        page_source = web_loader(page_url, browser=browser)
         if debug:
             logger.info(page_source)
     except Exception as exception:
         logger.critical(str(exception))
-        with open(debug_filename, 'w', encaoding='utf-8') as fp:
+        with open(debug_filename, 'w', encoding='utf-8') as fp:
             print(str(page_source), file=fp)
         return []
 
@@ -526,8 +533,8 @@ def get_args(argv=None):
     return args
 
 
-def _scrapper(login_url, page_url, setting_filename, existing_post_filename,
-              new_post_filename, login_filename, sleep_time,
+def _scrapper(page_url, setting_filename, existing_post_filename,
+              new_post_filename, sleep_time,
               default_sleep_time, browser,
               notify_kwargs, debug):
     if os.path.exists(setting_filename):
@@ -539,8 +546,8 @@ def _scrapper(login_url, page_url, setting_filename, existing_post_filename,
     # a new day, reset sleep_time to default
     try:
         new_posts = scrap_fb(
-            login_url, page_url, setting_filename, existing_post_filename,
-            new_post_filename, login_filename,
+            page_url, setting_filename, existing_post_filename,
+            new_post_filename,
             skipping_dict=skipping_dict,
             browser=browser, debug=debug)
     except Exception as e:
@@ -601,21 +608,28 @@ def _main(argv=None):
 
     exception = None
     browser = None
+    # try:
+    #     browser = load_chrome()
+    #     browser.set_network_conditions(
+    #         offline=False,
+    #         latency=5,  # additional latency (ms)
+    #         download_throughput=500 * 1024,  # maximal throughput
+    #         upload_throughput=20 * 1024)  # maximal throughput
+    #     logger.info('Loaded Chrome')
+    # except WebDriverException:
     try:
-        browser = load_chrome()
-        browser.set_network_conditions(
-            offline=False,
-            latency=5,  # additional latency (ms)
-            download_throughput=500 * 1024,  # maximal throughput
-            upload_throughput=20 * 1024)  # maximal throughput
-        logger.info('Loaded Chrome')
+        browser = load_firefox()
+        logger.info('Loaded Firefox')
     except WebDriverException:
-        try:
-            browser = load_firefox()
-            logger.info('Loaded Firefox')
-        except WebDriverException:
-            pass
+        pass
     time.sleep(random.randint(3, 6))
+    try:
+        web_login(login_url, login_filename, browser=browser)
+    except Exception as e:
+        exception_txt = f'error in web_login: {e}'
+        logger.error(exception_txt)
+        _send_email(exception_txt, 'BUG Reported from Free Stuff Found on FaceBook Buy Nothing',
+                    DEFAULT_EMAIL, is_bug=True)
 
     if EMAIL_COUNTER_KEY not in os.environ:
         os.environ[EMAIL_COUNTER_KEY] = str(0)
@@ -632,7 +646,7 @@ def _main(argv=None):
             if os.path.isfile(GECKODRIVER_LOG):
                 os.remove(GECKODRIVER_LOG)
         else:
-            scrapper_args = (login_url, page_url, setting_filename, existing_post_filename, new_post_filename, login_filename, sleep_time, default_sleep_time, browser, notify_kwargs, debug)
+            scrapper_args = (page_url, setting_filename, existing_post_filename, new_post_filename, sleep_time, default_sleep_time, browser, notify_kwargs, debug)
             # if browser is None:
             scrapper(*scrapper_args)
             # else:

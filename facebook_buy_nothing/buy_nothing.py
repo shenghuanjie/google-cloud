@@ -67,7 +67,7 @@ GECKODRIVER_LOG = 'geckodriver.log'
 
 PAGE_URL = 'https://www.facebook.com/groups/2621840064559532?sorting_setting=CHRONOLOGICAL'
 LOGIN_URL = "https://www.facebook.com/login/device-based/regular/login/?login_attempt=1&next=https%3A%2F%2Fwww.facebook.com%2Fgroups%2F2621840064559532%3Fsorting_setting%3DCHRONOLOGICAL"
-MY_IMG_LINK = 'https://scontent-sjc3-1.xx.fbcdn.net/v/t1.6435-1/67716435_2340044926083401_8053815337931505664_n.jpg'
+MY_IMG_LINK = '67716435_2340044926083401_8053815337931505664_n.jpg'
 
 POST_PATTERN = (
     '<a class=".*?" href="'
@@ -333,7 +333,7 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
             post_id = post_link.split('/')[-1]
             all_imgs = re.findall(img_pattern, post_content)
             if all_imgs:
-                all_imgs = [img_link for img_link in all_imgs if not img_link.startswith(MY_IMG_LINK)]
+                all_imgs = [img_link for img_link in all_imgs if not MY_IMG_LINK in img_link]
             else:
                 all_imgs = []
             all_txts = re.findall(txt_pattern, post_content)

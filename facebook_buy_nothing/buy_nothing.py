@@ -418,11 +418,11 @@ def make_html_body(post_tuple):
     all_txts_lower = all_txts.lower()
     if all_txts_lower.find('gift') != -1 or all_txts_lower.find('iso') == -1:
         html_body = (
-            f"<a href=\"" + post_link + "\"><br>" + all_txts + "<br></a>"
+            fr'<a href="{post_link}"><br>{all_txts}<br></a>'
         )
         if all_imgs:
             for img_link in all_imgs:
-                html_body += "<a href=\"" + post_link + "\">" + "<img src=\"" + img_link + "\">" + "</a>" + "<br>"
+                html_body += fr'<a href="{post_link}"><img src="{img_link}"></a><br>'
         return html_body
     else:
         return ''

@@ -73,8 +73,8 @@ MY_IMG_LINK = '67716435_2340044926083401_8053815337931505664_n.jpg'
 POST_PATTERN = (
     'aria-haspopup="menu" aria-label="Actions for this post"'
     + "(.*?)"
-    + '<a class=".*?" href="'
-    + '(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"'
+    + 'href="(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"'
+
 )
 IMG_PATTERN = '"(https://scontent.*?)"'
 TXT_PATTERN = '<div dir="auto" style="text-align:.*?">(.*?)</div>'

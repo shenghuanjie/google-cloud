@@ -70,12 +70,10 @@ LOGIN_URL = "https://www.facebook.com/login/device-based/regular/login/?login_at
 MY_IMG_LINK = '67716435_2340044926083401_8053815337931505664_n.jpg'
 
 POST_PATTERN = (
-    '<a class=".*?" href="'
-    + '(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"'
-    + ".*?"
-    + 'aria-haspopup="menu" aria-label="Actions for this post"'
+    'aria-haspopup="menu" aria-label="Actions for this post"'
     + "(.*?)"
-    + 'Write (?:a comment|an answer).{1,3}</div>'
+    + '<a class=".*?" href="'
+    + '(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"'
 )
 IMG_PATTERN = '"(https://scontent.*?)"'
 TXT_PATTERN = '<div dir="auto" style="text-align:.*?">(.*?)</div>'
@@ -328,8 +326,8 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
         html_txt = []
         results = []
         for post in all_posts:
-            post_link = post[0]
-            post_content = post[1]
+            post_link = post[1]
+            post_content = post[0]
             post_id = post_link.split('/')[-1]
             all_imgs = re.findall(img_pattern, post_content)
             if all_imgs:
@@ -347,7 +345,7 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
         if debug:
             logger.info('skipping_dict: ', skipping_dict)
         with open(new_post_filename, 'wt', encoding="utf-8") as fp:
-            print('\n'.join(post[0].split('/')[-1] for post in all_posts), file=fp)
+            print('\n'.join(post[1].split('/')[-1] for post in all_posts), file=fp)
         if platform == 'win32':
             with open(existing_post_filename, encoding="utf-8") as fp:
                 existing_posts = set(ln.strip() for ln in fp.readlines())

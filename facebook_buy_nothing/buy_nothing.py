@@ -431,7 +431,7 @@ def make_html_body(post_tuple):
 def _send_email(html_body, title, emails, is_bug=False):
     if not isinstance(emails, str):
         emails = ' '.join(emails)
-    email_cmd = f'echo "{html_body}" | mail -s "{title}\nContent-Type: text/html" -aFrom:{DEFAULT_EMAIL} {emails}'
+    email_cmd = fr"echo '{html_body}'" + f' | mail -s "{title}\nContent-Type: text/html; charset=UTF-8" -aFrom:{DEFAULT_EMAIL} {emails}'
     if is_bug:
         logger.info(f'Sending bug report to {emails}.')
     else:

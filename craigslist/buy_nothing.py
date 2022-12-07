@@ -21,6 +21,8 @@ from enum import Enum
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
 import yaml
+from selenium.webdriver.common.by import By
+
 if platform == "win32":
     from win10toast import ToastNotifier
 
@@ -34,7 +36,7 @@ LOGIN_FILENAME = 'login_fb.txt'
 SETTING_FILENAME = 'settings_fb.yaml'
 EXECUTION_LOG_FILENAME = 'execution_fb.log'
 SLEEPING_TIME = 60
-DEBUG_FILENAME = 'debug.html'
+DEBUG_FILENAME = 'debug_fb.html'
 DEFAULT_EMAIL = 'drhsheng@gmail.com'
 NIGHT_SLEEPING_TIME = 3600
 MAX_NUM_EMAIL_PER_DAY = 200
@@ -68,16 +70,12 @@ LOGIN_URL = "https://www.facebook.com/login/device-based/regular/login/?login_at
 MY_IMG_LINK = 'https://scontent-sjc3-1.xx.fbcdn.net/v/t1.6435-1/67716435_2340044926083401_8053815337931505664_n.jpg'
 
 POST_PATTERN = (
-    '<a class=".*?" href="(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link" tabindex="0">'
-    # "<span>Buy Nothing Fremont, Newark and Union City, CA</span>"
+    '<a class=".*?" href="'
+    + '(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"'
     + ".*?"
     + 'aria-haspopup="menu" aria-label="Actions for this post"'
     + "(.*?)"
-    # '(?:<img alt=.*? class=.*? src="(https://.*?)" width="\d+" height="\d+">|<div aria-label="Leave a comment")'
-    # + ".*?"
-    + 'Write a comment.</div>'
-    # + ".*?"
-    # + 'Write a comment'
+    + 'Write (?:a comment|an answer).{1,3}</div>'
 )
 IMG_PATTERN = '"(https://scontent.*?)"'
 TXT_PATTERN = '<div dir="auto" style="text-align:.*?">(.*?)</div>'
@@ -160,7 +158,7 @@ def load_chrome():
     options.add_argument('disable-infobars')
     options.add_argument('--disable-extensions')
     options.add_argument('--disable-gpu')
-    #options.add_argument('--disk-cache-size=0')
+    # options.add_argument('--disk-cache-size=0')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--disable-extensions')
     # options.add_argument('--remote-debugging-port=9222')
@@ -175,6 +173,8 @@ def load_firefox():
     firefox_options = webdriver.FirefoxOptions()
     if platform.startswith('linux'):
         firefox_options.add_argument("--headless")
+    if os.path.exists('/Users/shengh4/miniconda3/envs/acap_dev/bin/firefox'):
+        firefox_options.binary_location = '/Users/shengh4/miniconda3/envs/acap_dev/bin/firefox'
     # firefox_options.add_argument("start-maximized")
     # firefox_options.add_argument("disable-infobars")
     # firefox_options.add_argument("--disable-extensions")
@@ -192,13 +192,15 @@ def load_firefox():
     browser = webdriver.Firefox(firefox_profile=firefox_profile, options=firefox_options)
     return browser
 
+
 def web_login(login_url, login_filename, browser=None):
     try:
         time.sleep(2)
         browser.get(login_url)
-        email_field = browser.find_element_by_css_selector("input[name='email'][type='text']")
-        password_field = browser.find_element_by_css_selector("input[name='pass'][type='password']")
-        login_field = browser.find_element_by_css_selector("button[name='login'][type='submit']")
+        time.sleep(2)
+        email_field = browser.find_element(By.CSS_SELECTOR, "input[name='email'][type='text']")
+        password_field = browser.find_element(By.CSS_SELECTOR, "input[name='pass'][type='password']")
+        login_field = browser.find_element(By.CSS_SELECTOR, "button[name='login'][type='submit']")
 
         with open(login_filename, 'rt', encoding='utf-8') as fp:
             username = fp.readline().strip()
@@ -209,7 +211,7 @@ def web_login(login_url, login_filename, browser=None):
 
         # wait for 2-step
         try:
-            receive_code = browser.find_element_by_css_selector("input[aria-label='Login code'][type='text']")
+            receive_code = browser.find_element(By.CSS_SELECTOR, "input[aria-label='Login code'][type='text']")
             print('receive_code: ', receive_code)
         except NoSuchElementException:
             # maybe the page has not been loaded yet.
@@ -220,7 +222,7 @@ def web_login(login_url, login_filename, browser=None):
             time.sleep(5)
             # <input type="text" class="inputtext" id="approvals_code" name="approvals_code" tabindex="1" autocomplete="off" placeholder="Login code" aria-label="Login code">
             try:
-                receive_code = browser.find_element_by_css_selector("input[aria-label='Login code'][type='text']")
+                receive_code = browser.find_element(By.CSS_SELECTOR, "input[aria-label='Login code'][type='text']")
             except NoSuchElementException:
                 print('Log in authorized yet, proceed to posts.')
                 break
@@ -228,7 +230,7 @@ def web_login(login_url, login_filename, browser=None):
         raise Exception(f'Login failed with message: {e}')
 
 
-def web_loader(page_url, browser=None):
+def web_loader(page_url, browser=None, num_rolling_times=5):
     # os.environ['PATH'] += f';{firefox_path}'
     # logger.info(os.environ['PATH'])
     # binary = FirefoxBinary(os.path.join(firefox_path, 'firefox.exe'))
@@ -236,12 +238,11 @@ def web_loader(page_url, browser=None):
     # os.system('sudo wondershaper ens4 4048 9999')
 
     try:
-
         browser.get(page_url)
-        time.sleep(0.5)
-        for _ in range(10):
+        time.sleep(random.randint(3, 6))
+        for _ in range(num_rolling_times):
             browser.execute_script("window.scrollTo({top: Math.round(document.body.scrollHeight), behavior: 'smooth'});")
-            time.sleep(0.5)
+            time.sleep(random.randint(3, 6))
         page_source = browser.page_source
         # with open('test.txt', 'w', encoding='utf-8') as fp:
         #     print(page_source, file=fp)
@@ -387,10 +388,9 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
             logger.info('nothing new')
         return new_results
     else:
-        logger.info(f'No result is found. Please check {debug_filename}'
-              'for page_source')
-        with open(debug_filename, 'w', encoding="utf-8") as debug_fn:
-            print(page_source, file=debug_fn)
+        logger.info(f'No result is found. This is quite common.')
+        # with open(debug_filename, 'w', encoding="utf-8") as debug_fn:
+        #     print(page_source, file=debug_fn)
         return []
 
 
@@ -411,7 +411,7 @@ def get_url(url_template, setting_dict=None):
 
 
 def make_html_body(post_tuple):
-    post_id = post_tuple[patternName.POST_ID]
+    # post_id = post_tuple[patternName.POST_ID]
     all_txts = post_tuple[patternName.TXT]
     post_link = post_tuple[patternName.POST_LINK]
     all_imgs = post_tuple[patternName.IMG_LINK]
@@ -592,7 +592,9 @@ def _main(argv=None):
         notify_kwargs['emails'] = args.email_addresses
         notify_kwargs['email_quota'] = args.email_quota
     elif platform == "darwin":
-        raise OSError(f'OS {platform} not supported.')
+        # mac
+        notify_kwargs['emails'] = args.email_addresses
+        notify_kwargs['email_quota'] = args.email_quota
     elif platform == "win32":
         notify_kwargs['toast'] = ToastNotifier()
 
@@ -617,11 +619,8 @@ def _main(argv=None):
     #         upload_throughput=20 * 1024)  # maximal throughput
     #     logger.info('Loaded Chrome')
     # except WebDriverException:
-    try:
-        browser = load_firefox()
-        logger.info('Loaded Firefox')
-    except WebDriverException:
-        pass
+    browser = load_firefox()
+    logger.info('Loaded Firefox')
     time.sleep(random.randint(3, 6))
     try:
         web_login(login_url, login_filename, browser=browser)
@@ -659,9 +658,10 @@ def _main(argv=None):
     # if browser is not None:
     #     browser.close()
 
+
 def main(argv=None):
     try:
-        _main(argv=None)
+        _main(argv=argv)
     except Exception as e:
         exception_txt = str(e)
         logger.error(exception_txt)
@@ -670,4 +670,5 @@ def main(argv=None):
 
 
 if __name__ == '__main__':
+    os.environ['PATH'] += ':/Users/shengh4/miniconda3/envs/acap_dev/bin/'
     main()

@@ -1,5 +1,5 @@
 *.log
 *.log.*
-existing_posts.txt
-new_posts.txt
+existing_posts*.txt
+new_posts*.txt
 debug*.html

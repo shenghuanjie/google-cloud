@@ -13,6 +13,7 @@ import smtplib
 from sys import platform
 import time
 from urllib.parse import quote
+import pandas as pd
 
 from datetime import datetime
 from datetime import time as datetime_time
@@ -228,7 +229,7 @@ def web_login(login_url, login_filename, browser=None):
         raise Exception(f'Login failed with message: {e}')
 
 
-def web_loader(page_url, browser=None, num_rolling_times=5):
+def web_loader(page_url, browser=None, num_rolling_times=5, debug=False):
     # os.environ['PATH'] += f';{firefox_path}'
     # logger.info(os.environ['PATH'])
     # binary = FirefoxBinary(os.path.join(firefox_path, 'firefox.exe'))
@@ -242,8 +243,9 @@ def web_loader(page_url, browser=None, num_rolling_times=5):
             browser.execute_script("window.scrollTo({top: Math.round(document.body.scrollHeight), behavior: 'smooth'});")
             time.sleep(random.randint(3, 6))
         page_source = browser.page_source
-        # with open('test.txt', 'w', encoding='utf-8') as fp:
-        #     print(page_source, file=fp)
+        if debug:
+            with open(DEBUG_FILENAME, 'w', encoding='utf-8') as fp:
+                print(page_source, file=fp)
     except Exception as e:
         raise Exception(f'Fail to load chrome or firefox with message: {e}')
     # finally:
@@ -306,7 +308,7 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
              debug=False):
     page_source = '[NOTHING YET]'
     try:
-        page_source = web_loader(page_url, browser=browser)
+        page_source = web_loader(page_url, browser=browser, debug=debug)
         if debug:
             logger.info(page_source)
     except Exception as exception:
@@ -386,9 +388,9 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
             logger.info('nothing new')
         return new_results
     else:
-        logger.info(f'No result is found. This is quite common.')
-        # with open(debug_filename, 'w', encoding="utf-8") as debug_fn:
-        #     print(page_source, file=debug_fn)
+        logger.info(f'No result is found. Please check {debug_filename} for source code.')
+        with open(debug_filename, 'w', encoding="utf-8") as debug_fn:
+            print(page_source, file=debug_fn)
         return []
 
 
@@ -553,6 +555,8 @@ def _scrapper(page_url, setting_filename, existing_post_filename,
         exception_txt = f'error in scrap_fb: {e}'
         _send_email(exception_txt, 'BUG Reported from Free Stuff Found on FaceBook Buy Nothing',
                     DEFAULT_EMAIL, is_bug=True)
+    if debug:
+        pd.DataFrame(new_posts).to_pickle('new_posts.pkl')
     # no notification the first search per day
     if sleep_time == default_sleep_time:
         notify(posts=new_posts, **notify_kwargs)

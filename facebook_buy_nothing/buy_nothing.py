@@ -361,7 +361,7 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
             if all_txts_lower.find('gift') != -1 or all_txts_lower.find('iso') == -1:
                 results.append((post_id, post_link, all_txts, all_imgs))
         if debug:
-            logger.info('skipping_dict: ', skipping_dict)
+            logger.info(f'skipping_dict: {skipping_dict}')
         with open(new_post_filename, 'wt', encoding="utf-8") as fp:
             print('\n'.join(result[patternName.POST_ID] for result in results), file=fp)
         with open(existing_post_filename, encoding="utf-8") as fp:

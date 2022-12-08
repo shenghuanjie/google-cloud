@@ -90,6 +90,13 @@ class patternName(int, Enum):
     POST_LINK = 1
     TXT = 2
     IMG_LINK = 3
+    
+
+def get_list_first(var, default=None):
+    try:
+        return var[0]
+    except IndexError:
+        return default
 
 
 def timeout(seconds):
@@ -357,42 +364,34 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
             logger.info('skipping_dict: ', skipping_dict)
         with open(new_post_filename, 'wt', encoding="utf-8") as fp:
             print('\n'.join(result[patternName.POST_ID] for result in results), file=fp)
-        if platform == 'win32':
-            with open(existing_post_filename, encoding="utf-8") as fp:
-                existing_posts = set(ln.strip() for ln in fp.readlines())
-            new_post_ids = [result[patternName.POST_ID] for result in results]
-            new_post_ids = [post_id for post_id in new_post_ids if post_id not in existing_posts]
-        else:
-            stdout, stderr = get_pipeline_result(f'grep -F -x -v -f {existing_post_filename} {new_post_filename}')
-            if debug:
-                logger.info(f'done with pipeline_result, {stdout} {stderr}')
-            if stderr:
-                raise ValueError(str(stderr))
-            new_post_ids = list(filter(None, stdout.split('\n')))
-        for result in results:
+        with open(existing_post_filename, encoding="utf-8") as fp:
+            existing_posts = set(ln.strip() for ln in fp.readlines())
+        new_post_results = [result for result in results if result[patternName.POST_ID] not in existing_posts]
+        new_post_ids = [result[patternName.POST_ID] for result in new_post_results]
+        for result in new_post_results:
             post_id = result[patternName.POST_ID]
             if debug:
                 logger.info(f'{post_id} testing')
-            if post_id in new_post_ids:
-                skip_result = ''
-                if skipping_dict:
-                    for result_key, skip_values in skipping_dict.items():
-                        if skip_result:
+            skip_result = ''
+            if skipping_dict:
+                for result_key, skip_values in skipping_dict.items():
+                    if skip_result:
+                        break
+                    result_value = result[patternName[result_key]].lower()
+                    for skip_value in skip_values:
+                        if result_value.find(skip_value.lower()) != -1:
+                            skip_result = f'{result_key}: {skip_value}'
                             break
-                        result_value = result[patternName[result_key]].lower()
-                        for skip_value in skip_values:
-                            if result_value.find(skip_value.lower()) != -1:
-                                skip_result = f'{result_key}: {skip_value}'
-                                break
-                if not skip_result:
-                    new_results.append(result)
-                else:
-                    if debug:
-                        logger.info(f'{post_id} skipped due to skip_value found: {skip_result}')
+            if not skip_result:
+                new_results.append(result)
+            else:
+                if debug:
+                    logger.info(f'{post_id} skipped due to skip_value found: {skip_result}')
         if new_results:
             logger.info(f'having {len(new_results)} new results.')
             with open(existing_post_filename, 'a', encoding="utf-8") as fp:
-                print('\n'.join(new_post_ids), file=fp)
+                print('\n'.join(result[patternName.POST_ID] + "\n" + get_list_first(result[patternName.IMG_LINK]) + '\n' + result[patternName.TXT] 
+                                for result in new_post_results), file=fp)
         else:
             logger.info('nothing new')
         return new_results

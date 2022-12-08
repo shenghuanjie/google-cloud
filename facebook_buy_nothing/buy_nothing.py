@@ -73,8 +73,8 @@ MY_IMG_LINK = '67716435_2340044926083401_8053815337931505664_n.jpg'
 POST_PATTERN = (
     'aria-haspopup="menu" aria-label="Actions for this post"'
     + "(.*?)"
-    + 'href="(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"'
-
+    + '(?:href="(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"|)'
+    + '<title>Shared with Members of Buy Nothing Fremont, Newark and Union City, CA</title>'
 )
 IMG_PATTERN = '"(https://scontent.*?)"'
 TXT_PATTERN = '<div dir="auto" style="text-align:.*?">(.*?)</div>'
@@ -330,7 +330,11 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
         for post in all_posts:
             post_link = post[1]
             post_content = post[0]
-            post_id = post_link.split('/')[-1]
+            if post_link:
+                post_id = post_link.split('/')[-1]
+            else:
+                post_id = post_content
+                post_link = PAGE_LINK
             all_imgs = re.findall(img_pattern, post_content)
             if all_imgs:
                 all_imgs = [img_link for img_link in all_imgs if not MY_IMG_LINK in img_link]

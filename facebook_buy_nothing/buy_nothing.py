@@ -334,7 +334,7 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
                 post_id = post_link.split('/')[-1]
             else:
                 post_id = post_content
-                post_link = PAGE_LINK
+                post_link = PAGE_URL
             all_imgs = re.findall(img_pattern, post_content)
             if all_imgs:
                 all_imgs = [img_link for img_link in all_imgs if not MY_IMG_LINK in img_link]

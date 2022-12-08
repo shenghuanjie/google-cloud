@@ -239,10 +239,10 @@ def web_loader(page_url, browser=None, num_rolling_times=5, debug=False):
 
     try:
         browser.get(page_url)
-        time.sleep(random.randint(3, 6))
+        time.sleep(random.randint(5, 8))
         for _ in range(num_rolling_times):
             browser.execute_script("window.scrollTo({top: Math.round(document.body.scrollHeight), behavior: 'smooth'});")
-            time.sleep(random.randint(3, 6))
+            time.sleep(random.randint(5, 8))
         page_source = browser.page_source
         if debug:
             with open(DEBUG_FILENAME, 'w', encoding='utf-8') as fp:
@@ -331,16 +331,20 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
         for post in all_posts:
             post_link = post[1]
             post_content = post[0]
-            if post_link:
-                post_id = post_link.split('/')[-1]
-            else:
-                post_id = post_content
-                post_link = PAGE_URL
             all_imgs = re.findall(img_pattern, post_content)
             if all_imgs:
                 all_imgs = [img_link for img_link in all_imgs if not MY_IMG_LINK in img_link]
             else:
                 all_imgs = []
+            
+            if post_link:
+                post_id = post_link.split('/')[-1]
+            else:
+                if all_imgs:
+                    post_id = all_imgs[0]
+                else:
+                    post_id = post_content[:100]
+                post_link = PAGE_URL
             all_txts = re.findall(txt_pattern, post_content)
             if all_txts:
                 all_txts = ' '.join(all_txts)

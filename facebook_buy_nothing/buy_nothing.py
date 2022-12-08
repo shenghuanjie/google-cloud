@@ -428,6 +428,7 @@ def make_html_body(post_tuple):
         if all_imgs:
             for img_link in all_imgs:
                 html_body += fr'<a href="{post_link}"><img src="{img_link}"></a><br>'
+        html_body = html_body.replace("'", '"')
         return html_body
     else:
         return ''

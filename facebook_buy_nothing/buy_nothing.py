@@ -73,8 +73,9 @@ MY_IMG_LINK = '67716435_2340044926083401_8053815337931505664_n.jpg'
 POST_PATTERN = (
     'aria-haspopup="menu" aria-label="Actions for this post"'
     + "(.*?)"
-    + '(?:href="(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"|)'
-    + '<title>Shared with Members of Buy Nothing Fremont, Newark and Union City, CA</title>'
+    + '(?:href="(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"|<title>)'
+    + '.*?'
+    + 'Shared with Members of Buy Nothing Fremont, Newark and Union City, CA</title>'
 )
 IMG_PATTERN = '"(https://scontent.*?)"'
 TXT_PATTERN = '<div dir="auto" style="text-align:.*?">(.*?)</div>'
@@ -351,7 +352,7 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
         if debug:
             logger.info('skipping_dict: ', skipping_dict)
         with open(new_post_filename, 'wt', encoding="utf-8") as fp:
-            print('\n'.join(post[1].split('/')[-1] for post in all_posts), file=fp)
+            print('\n'.join(result[patternName.POST_ID] for result in results), file=fp)
         if platform == 'win32':
             with open(existing_post_filename, encoding="utf-8") as fp:
                 existing_posts = set(ln.strip() for ln in fp.readlines())

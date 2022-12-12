@@ -20,8 +20,10 @@ from datetime import time as datetime_time
 import pytz
 from enum import Enum
 from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.common.exceptions import WebDriverException, NoSuchElementException
 import yaml
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 
 if platform == "win32":
@@ -71,11 +73,11 @@ LOGIN_URL = "https://www.facebook.com/login/device-based/regular/login/?login_at
 MY_IMG_LINK = '67716435_2340044926083401_8053815337931505664_n.jpg'
 
 POST_PATTERN = (
+    '<a class=.*? href="(https://www.facebook.com/groups/2621840064559532/posts/\d+)/\?__cft__\[0\]=.*?" role="link" tabindex'
+    + ".*?"
     'aria-haspopup="menu" aria-label="Actions for this post"'
     + "(.*?)"
-    + '(?:href="(https://www.facebook.com/groups/2621840064559532/posts/\d+)/.*?" role="link"|<title>)'
-    + '.*?'
-    + 'Shared with Members of Buy Nothing Fremont, Newark and Union City, CA</title>'
+    + '<title>Shared with Members of Buy Nothing Fremont, Newark and Union City, CA</title>'
 )
 IMG_PATTERN = '"(https://scontent.*?)"'
 TXT_PATTERN = '<div dir="auto" style="text-align:.*?">(.*?)</div>'
@@ -90,7 +92,7 @@ class patternName(int, Enum):
     POST_LINK = 1
     TXT = 2
     IMG_LINK = 3
-    
+
 
 def get_list_first(var, default=None):
     try:
@@ -204,7 +206,7 @@ def web_login(login_url, login_filename, browser=None):
     try:
         time.sleep(2)
         browser.get(login_url)
-        time.sleep(2)
+        time.sleep(1)
         email_field = browser.find_element(By.CSS_SELECTOR, "input[name='email'][type='text']")
         password_field = browser.find_element(By.CSS_SELECTOR, "input[name='pass'][type='password']")
         login_field = browser.find_element(By.CSS_SELECTOR, "button[name='login'][type='submit']")
@@ -246,14 +248,29 @@ def web_loader(page_url, browser=None, num_rolling_times=5, debug=False):
 
     try:
         browser.get(page_url)
-        time.sleep(random.randint(5, 8))
+        time.sleep(random.randint(1, 3))
         for _ in range(num_rolling_times):
             browser.execute_script("window.scrollTo({top: Math.round(document.body.scrollHeight), behavior: 'smooth'});")
-            time.sleep(random.randint(5, 8))
+            time.sleep(random.randint(1, 3))
+        for _ in range(num_rolling_times):
+        post_elements = browser.find_elements(
+            By.CSS_SELECTOR, "a[class='x1i10hfl xjbqb8w x6umtig x1b1mbwd xaqea5y xav7gou x9f619 x1ypdohk xt0psk2 xe8uvvx xdj266r x11i5rnm xat24cr x1mh8g0r xexx8yu x4uap5 x18d9i69 xkhd6sd x16tdsg8 x1hl2dhg xggy1nq x1a2a7pz x1heor9g xt0b8zv xo1l8bm'][href='#'][role='link']")
+        for ele in post_elements:
+            try:
+                scroll_shim(browser, ele)
+                time.sleep(random.random())
+                action = ActionChains(browser)
+                action.move_to_element(ele).perform()
+                time.sleep(random.random())
+                # ele.send_keys(Keys.CONTROL, Keys.ENTER)
+            except Exception as e:
+                logger.error(e)
         page_source = browser.page_source
         if debug:
             with open(DEBUG_FILENAME, 'w', encoding='utf-8') as fp:
                 print(page_source, file=fp)
+            import pdb
+            pdb.set_trace()
     except Exception as e:
         raise Exception(f'Fail to load chrome or firefox with message: {e}')
     # finally:
@@ -336,14 +353,14 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
         html_txt = []
         results = []
         for post in all_posts:
-            post_link = post[1]
-            post_content = post[0]
+            post_link = post[0]
+            post_content = post[1]
             all_imgs = re.findall(img_pattern, post_content)
             if all_imgs:
                 all_imgs = [img_link for img_link in all_imgs if not MY_IMG_LINK in img_link]
             else:
                 all_imgs = []
-            
+
             if post_link:
                 post_id = post_link.split('/')[-1]
             else:
@@ -390,15 +407,17 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
         if new_results:
             logger.info(f'having {len(new_results)} new results.')
             with open(existing_post_filename, 'a', encoding="utf-8") as fp:
-                print('\n'.join(result[patternName.POST_ID] + "\n" + get_list_first(result[patternName.IMG_LINK]) + '\n' + result[patternName.TXT] 
+                print('\n'.join(result[patternName.POST_ID] + "\n" + get_list_first(result[patternName.IMG_LINK]) + '\n' + result[patternName.TXT]
                                 for result in new_post_results), file=fp)
         else:
             logger.info('nothing new')
+        import pdb; pdb.set_trace()
         return new_results
     else:
         logger.info(f'No result is found. Please check {debug_filename} for source code.')
         with open(debug_filename, 'w', encoding="utf-8") as debug_fn:
             print(page_source, file=debug_fn)
+        import pdb; pdb.set_trace()
         return []
 
 

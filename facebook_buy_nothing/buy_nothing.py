@@ -268,10 +268,10 @@ def web_loader(page_url, browser=None, num_rolling_times=5, debug=False):
         for ele in post_elements:
             try:
                 scroll_shim(browser, ele)
-                time.sleep(random.random())
+                time.sleep(random.random() * 2)
                 action = ActionChains(browser)
                 action.move_to_element(ele).perform()
-                time.sleep(random.random())
+                time.sleep(random.random() * 2)
                 # ele.send_keys(Keys.CONTROL, Keys.ENTER)
             except Exception as e:
                 logger.error(e)
@@ -421,7 +421,6 @@ def scrap_fb(page_url, setting_filename, existing_post_filename,
                                 for result in new_post_results), file=fp)
         else:
             logger.info('nothing new')
-        import pdb; pdb.set_trace()
         return new_results
     else:
         logger.info(f'No result is found. Please check {debug_filename} for source code.')

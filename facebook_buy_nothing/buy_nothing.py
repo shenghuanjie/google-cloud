@@ -237,6 +237,17 @@ def web_login(login_url, login_filename, browser=None):
                 break
     except Exception as e:
         raise Exception(f'Login failed with message: {e}')
+        
+def scroll_shim(passed_in_driver, element, offsets=None):
+    scroll_script = (
+        "var viewPortHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);" 
+        + "var elementTop = arguments[0].getBoundingClientRect().top;"
+        + "window.scrollBy(0, elementTop-(viewPortHeight/2));"
+    )
+    passed_in_driver.execute_script(scroll_script, element)
+    if offsets:
+        scroll_nav_out_of_way = f'window.scrollBy{offsets};'
+        passed_in_driver.execute_script(scroll_nav_out_of_way)
 
 
 def web_loader(page_url, browser=None, num_rolling_times=5, debug=False):

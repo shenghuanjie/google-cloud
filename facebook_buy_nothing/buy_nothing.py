@@ -252,7 +252,6 @@ def web_loader(page_url, browser=None, num_rolling_times=5, debug=False):
         for _ in range(num_rolling_times):
             browser.execute_script("window.scrollTo({top: Math.round(document.body.scrollHeight), behavior: 'smooth'});")
             time.sleep(random.randint(1, 3))
-        for _ in range(num_rolling_times):
         post_elements = browser.find_elements(
             By.CSS_SELECTOR, "a[class='x1i10hfl xjbqb8w x6umtig x1b1mbwd xaqea5y xav7gou x9f619 x1ypdohk xt0psk2 xe8uvvx xdj266r x11i5rnm xat24cr x1mh8g0r xexx8yu x4uap5 x18d9i69 xkhd6sd x16tdsg8 x1hl2dhg xggy1nq x1a2a7pz x1heor9g xt0b8zv xo1l8bm'][href='#'][role='link']")
         for ele in post_elements:

@@ -79,9 +79,11 @@ POST_PATTERN = (
     + "(.*?)"
     + '<title>Shared with Members of Buy Nothing Fremont, Newark and Union City, CA</title>'
 )
+LINK_PATTERN = 'https://www.facebook.com/groups/2621840064559532/posts/\d+)/\?__cft__\[0\]=.*?'
 IMG_PATTERN = '"(https://scontent.*?)"'
 TXT_PATTERN = '<div dir="auto" style="text-align:.*?">(.*?)</div>'
 POST_PATTERN = re.compile(POST_PATTERN)
+LINK_PATTERN = re.compile(LINK_PATTERN)
 IMG_PATTERN = re.compile(IMG_PATTERN)
 TXT_PATTERN = re.compile(TXT_PATTERN)
 
@@ -237,10 +239,10 @@ def web_login(login_url, login_filename, browser=None):
                 break
     except Exception as e:
         raise Exception(f'Login failed with message: {e}')
-        
+
 def scroll_shim(passed_in_driver, element, offsets=None):
     scroll_script = (
-        "var viewPortHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);" 
+        "var viewPortHeight = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);"
         + "var elementTop = arguments[0].getBoundingClientRect().top;"
         + "window.scrollBy(0, elementTop-(viewPortHeight/2));"
     )
@@ -265,12 +267,15 @@ def web_loader(page_url, browser=None, num_rolling_times=5, debug=False):
             time.sleep(random.randint(1, 3))
         post_elements = browser.find_elements(
             By.CSS_SELECTOR, "a[class='x1i10hfl xjbqb8w x6umtig x1b1mbwd xaqea5y xav7gou x9f619 x1ypdohk xt0psk2 xe8uvvx xdj266r x11i5rnm xat24cr x1mh8g0r xexx8yu x4uap5 x18d9i69 xkhd6sd x16tdsg8 x1hl2dhg xggy1nq x1a2a7pz x1heor9g xt0b8zv xo1l8bm'][href='#'][role='link']")
+
         for ele in post_elements:
             try:
                 scroll_shim(browser, ele)
                 time.sleep(random.random() * 2)
                 action = ActionChains(browser)
                 action.move_to_element(ele).perform()
+                href_link = ele.get_attribute('href')
+                href_link
                 time.sleep(random.random() * 2)
                 # ele.send_keys(Keys.CONTROL, Keys.ENTER)
             except Exception as e:
